@@ -1,6 +1,6 @@
 /**
  * @file wconfigdocument.cpp
- * @brief 配置文档实现文件
+ * @brief Configuration document implementation
  * @author howdy213
  * @date 2026-1-30
  * @version 1.1.0
@@ -19,53 +19,87 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include "wconfigdocument.h"
 
-///
-/// \brief WConfigDocument::WConfigDocument
-///
-WConfigDocument::WConfigDocument() {}
-///
-/// \brief WConfigDocument::~WConfigDocument
-///
-WConfigDocument::~WConfigDocument() {}
+#include <QDebug>
+
 ///
 /// \brief WConfigDocument::load
-/// \param text
-/// \param isPath
-/// \return
+/// \param source JSON string or file path
+/// \param isPath If true, treat source as file path; otherwise as raw JSON text
+/// \return True on success, false on error
 ///
-bool WConfigDocument::load(QString text, bool isPath) {
-    QString json = "";
+bool WConfigDocument::load(const QString &source, bool isPath) {
+    QString jsonText;
     if (isPath) {
-        QFile file(text);
-        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            QTextStream in(&file);
-            in.setEncoding(QStringConverter::Utf8);
-            json = in.readAll();
-            file.close();
-        } else
+        QFile file(source);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qWarning() << "Failed to open file:" << source;
             return false;
-    } else
-        json = text;
-    QJsonParseError jsonError;
-    QJsonDocument doc;
-    doc = QJsonDocument::fromJson(json.toUtf8(), &jsonError);
-    if (jsonError.error != QJsonParseError::NoError && !doc.isNull()) {
-        qDebug() << "Json格式错误！" << jsonError.error;
+        }
+        QTextStream in(&file);
+        in.setEncoding(QStringConverter::Utf8);
+        jsonText = in.readAll();
+        file.close();
+    } else {
+        jsonText = source;
+    }
+
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(jsonText.toUtf8(), &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
+        qWarning() << "JSON parse error at offset" << parseError.offset << ":" << parseError.errorString();
         return false;
     }
+
+    if (doc.isNull()) {
+        return true;
+    }
+
     QJsonObject obj = doc.object();
-    for (auto it = obj.begin(); it != obj.end(); it++) {
-        this->set(it.key(), it.value().toVariant());
+    for (auto it = obj.begin(); it != obj.end(); ++it) {
+        set(it.key(), it.value().toVariant());
     }
     return true;
 }
+
 ///
-/// \brief WConfigDocument::toJson
-/// \return
+/// \brief WConfigDocument::save
+/// \param filePath Path to save the configuration file
+/// \return True on success, false on error
 ///
-QString WConfigDocument::toJson() {
-    QJsonDocument doc2 = QJsonDocument::fromVariant(toMap());
-    return doc2.toJson();
+bool WConfigDocument::save(const QString &filePath) const {
+    QJsonObject root = mapToJson(toMap());
+    QJsonDocument doc(root);
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open file for writing:" << filePath;
+        return false;
+    }
+    file.write(doc.toJson(QJsonDocument::Indented));
+    file.close();
+    return true;
+}
+
+///
+/// \brief WConfigDocument::mapToJson
+/// \param map Map to convert
+/// \return JSON object representing the map (only top-level keys)
+///
+QJsonObject WConfigDocument::mapToJson(const QMap<QString, QVariant> &map) {
+    QJsonObject obj;
+    for (auto it = map.begin(); it != map.end(); ++it) {
+        obj[it.key()] = QJsonValue::fromVariant(it.value());
+    }
+    return obj;
+}
+
+///
+/// \brief WConfigDocument::toJsonString
+/// \return JSON string representation of the current configuration
+///
+QString WConfigDocument::toJsonString() const {
+    QJsonDocument doc = QJsonDocument::fromVariant(toMap());
+    return doc.toJson(QJsonDocument::Compact);
 }

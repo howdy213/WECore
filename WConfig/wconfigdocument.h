@@ -1,6 +1,6 @@
 /**
  * @file wconfigdocument.h
- * @brief 配置文档类头文件，用于解析和生成 JSON 格式的配置数据
+ * @brief Configuration document class for JSON import/export
  * @author howdy213
  * @date 2026-1-30
  * @version 1.1.0
@@ -21,6 +21,7 @@
  */
 #ifndef WCONFIGDOCUMENT_H
 #define WCONFIGDOCUMENT_H
+
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -33,15 +34,43 @@
 #include <QVariant>
 
 #include "wconfig.h"
+W_INLINE namespace we {
+    class WE_EXPORT WConfigDocument : public WConfig<QVariant> {
+    public:
+    WConfigDocument() = default;
+    virtual ~WConfigDocument() = default;
 
-class WE_EXPORT WE_NAMESPACE::WConfigDocument : public WConfig<QVariant> {
-public:
-    WConfigDocument();
-    virtual ~WConfigDocument();
-    bool load(QString text, bool isPath);
-    QString toJson();
-};
+    /**
+     * @brief Load configuration from a JSON source.
+     * @param source JSON string or file path (depending on @p isPath)
+     * @param isPath If true, @p source is interpreted as a file path; otherwise
+     * as raw JSON text.
+     * @return true on success, false on parse error or file I/O error.
+     */
+    bool load(const QString &source, bool isPath);
 
+    /**
+     * @brief Save current configuration to a JSON file.
+     * @param filePath Destination file path.
+     * @return true if the file was written successfully.
+     */
+    bool save(const QString &filePath) const;
+
+    /**
+     * @brief Convert current configuration to a compact JSON string.
+     * @return JSON representation of the configuration (user-set values only).
+     */
+    QString toJsonString() const;
+
+private:
+    /**
+     * @brief Convert a flat QMap to a nested QJsonObject.
+     *        Supports dot-separated keys (e.g., "database.host") for nested
+     * objects.
+     */
+    static QJsonObject mapToJson(const QMap<QString, QVariant> &map);
+    };
+}
 Q_DECLARE_METATYPE(WE_NAMESPACE::WConfigDocument)
 Q_DECLARE_METATYPE(WE_NAMESPACE::WConfigDocument *)
 

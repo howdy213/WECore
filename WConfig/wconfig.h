@@ -1,6 +1,6 @@
 /**
  * @file wconfig.h
- * @brief 配置模板类头文件
+ * @brief Configuration template class header
  * @author howdy213
  * @date 2026-1-30
  * @version 1.1.0
@@ -21,100 +21,104 @@
  */
 #ifndef WCONFIG_H
 #define WCONFIG_H
-#include "../WDef/wedef.h"
 
+#include "../WDef/wedef.h"
+#include <QMap>
 #include <QString>
 
-template <class T> class WConfigPrivate {
+template <class T>
+class WConfigPrivate {
 public:
     QMap<QString, T> map;
     QMap<QString, T> defaultMap;
     T defaultValue;
 };
 
-template <class T> class WE_EXPORT WE_NAMESPACE::WConfig {
+template <class T>
+class WE_EXPORT WE_NAMESPACE::WConfig {
 public:
     WConfig();
     virtual ~WConfig();
-    T get(QString key);
-    bool setDefault(QString key, T value);
-    bool hasArg(QString key);
-    bool set(QString key, T value);
-    void setDefaultValue(T value);
-    QMap<QString, T> toMap();
-    QMap<QString, T> toMapDefualt();
+    Q_DISABLE_COPY(WConfig)
 
-private:
+    /**
+     * @brief Retrieve value for a key.
+     * @return Value from user map if present, otherwise per-key default,
+     *         finally global default value.
+     */
+    T get(const QString& key) const;
+
+    /**
+     * @brief Set a per-key default value.
+     * @return false if the key already has a user-set value, true otherwise.
+     */
+    bool setDefault(const QString& key, const T& value);
+
+    bool hasArg(const QString& key) const;
+    bool set(const QString& key, const T& value);
+    void setDefaultValue(const T& value);
+
+    QMap<QString, T> toMap() const;
+    QMap<QString, T> toMapDefault() const;
+
+protected:
     WConfigPrivate<T> *d = nullptr;
 };
 
-///
-/// \brief WConfig::WConfig
-///
-template <class T> WConfig<T>::WConfig() { this->d = new WConfigPrivate<T>; }
-///
-/// \brief WConfig::~WConfig
-///
-template <class T> WConfig<T>::~WConfig() { delete this->d; }
-///
-/// \brief WConfig::get
-/// \param key
-/// \return
-///
-template <class T> T WConfig<T>::get(QString key) {
-    if (!hasArg(key))
-        return d->defaultValue;
-    else
-        return d->map.contains(key) ? d->map[key] : d->defaultMap[key];
+// ---------------------- Implementation ----------------------
+
+template <class T>
+WConfig<T>::WConfig() {
+    d = new WConfigPrivate<T>;
 }
-///
-/// \brief WConfig::setDefault
-/// \param key
-/// \param value
-/// \return
-///
-template <class T> bool WConfig<T>::setDefault(QString key, T value) {
+
+template <class T>
+WConfig<T>::~WConfig() {
+    delete d;
+}
+
+template <class T>
+T WConfig<T>::get(const QString& key) const {
+    if (d->map.contains(key)) {
+        return d->map[key];
+    }
+    if (d->defaultMap.contains(key)) {
+        return d->defaultMap[key];
+    }
+    return d->defaultValue;
+}
+
+template <class T>
+bool WConfig<T>::setDefault(const QString& key, const T& value) {
     d->defaultMap[key] = value;
     return !d->map.contains(key);
 }
-///
-/// \brief WConfig::hasArg
-/// \param key
-/// \return
-///
-template <class T> bool WConfig<T>::hasArg(QString key) {
-    return d->defaultMap.contains(key) || d->map.contains(key);
+
+template <class T>
+bool WConfig<T>::hasArg(const QString& key) const {
+    return d->map.contains(key) || d->defaultMap.contains(key);
 }
-///
-/// \brief WConfig::set
-/// \param key
-/// \param value
-/// \return
-///
-template <class T> bool WConfig<T>::set(QString key, T value) {
-    bool res = false;
-    if (hasArg(key))
-        res = true;
+
+template <class T>
+bool WConfig<T>::set(const QString& key, const T& value) {
+    const bool existed = hasArg(key);
     d->map.insert(key, value);
-    return res;
+    return existed;
 }
-///
-/// \brief WConfig::setDefaultValue
-/// \param value
-///
-template <class T> void WConfig<T>::setDefaultValue(T value) {
+
+template <class T>
+void WConfig<T>::setDefaultValue(const T& value) {
     d->defaultValue = value;
 }
-///
-/// \brief WConfig::toMap
-/// \return
-///
-template <class T> QMap<QString, T> WConfig<T>::toMap() { return d->map; }
-///
-/// \brief WConfig::toMapDefualt
-/// \return
-///
-template <class T> QMap<QString, T> WConfig<T>::toMapDefualt() {
+
+template <class T>
+QMap<QString, T> WConfig<T>::toMap() const {
+    return d->map;
+}
+
+template <class T>
+QMap<QString, T> WConfig<T>::toMapDefault() const {
     return d->defaultMap;
 }
+
 #endif // WCONFIG_H

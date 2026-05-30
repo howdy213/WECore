@@ -10,7 +10,7 @@
 #
 # Copyright 2025-2026 howdy213
 # Licensed under the Apache License, Version 2.0
-
+QT += widgets
 TARGET = wecore
 TEMPLATE = lib
 

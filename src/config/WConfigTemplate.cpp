@@ -88,7 +88,30 @@ void WConfigTemplate::addArray(const QString &path, const QString &key,
     info.defaultValue(defaultValue).elementType(elementType);
     for (Property p : properties)
         info.property(p);
-    addArray(path, key, defaultValue, elementType, info, parent);
+    addArray(path, key, info, parent);
+}
+
+void WConfigTemplate::addSelect(const QString &path, const QString &key,
+                                const QString &defaultValue,
+                                const QStringList &options,
+                                const Properties &properties,
+                                WConfigViewer *parent) {
+    WConfigItemInfo info;
+    info.defaultValue(defaultValue);
+    for (Property p : properties)
+        info.property(p);
+    addSelect(path, key, info, parent);
+}
+
+void WConfigTemplate::addAction(const QString &path, const QString &key,
+                                ActionCallback callback,
+                                const Properties &properties,
+                                WConfigViewer *parent) {
+    WConfigItemInfo info;
+    for (Property p : properties)
+        info.property(p);
+    info.callback(callback);
+    addAction(path, key, info, parent);
 }
 
 WConfigDataObject *WConfigTemplate::addObject(const QString &path,
@@ -163,16 +186,32 @@ void WConfigTemplate::addBool(const QString &path, const QString &key,
 }
 
 void WConfigTemplate::addArray(const QString &path, const QString &key,
-                               const QVariantList &defaultValue,
-                               DataType elementType,
                                const WConfigItemInfo &info,
                                WConfigViewer *parent) {
     WConfigViewer *viewer = findViewer(path);
     WConfigDataArray *data = new WConfigDataArray;
-    data->init(key, defaultValue, elementType, info.properties(),
-               parent ? parent : viewer);
+    data->init(key, info, parent ? parent : viewer);
     data->setIsFromTemplate(true);
-    data->setInfo(info);
+    viewer->addConfigData(data);
+}
+
+void WConfigTemplate::addSelect(const QString &path, const QString &key,
+                                const WConfigItemInfo &info,
+                                WConfigViewer *parent) {
+    WConfigViewer *viewer = findViewer(path);
+    WConfigDataSelect *data = new WConfigDataSelect;
+    data->init(key, info, parent ? parent : viewer);
+    data->setIsFromTemplate(true);
+    viewer->addConfigData(data);
+}
+
+void WConfigTemplate::addAction(const QString &path, const QString &key,
+                                const WConfigItemInfo &info,
+                                WConfigViewer *parent) {
+    WConfigViewer *viewer = findViewer(path);
+    WConfigDataAction *data = new WConfigDataAction;
+    data->init(key, info, parent ? parent : viewer);
+    data->setIsFromTemplate(true);
     viewer->addConfigData(data);
 }
 
@@ -186,50 +225,6 @@ WConfigDataObject *WConfigTemplate::addObject(const QString &path,
     data->setIsFromTemplate(true);
     viewer->addConfigData(data);
     return data;
-}
-
-void WConfigTemplate::addSelect(const QString &path, const QString &key,
-                                const WConfigItemInfo &info,
-                                WConfigViewer *parent) {
-    WConfigViewer *viewer = findViewer(path);
-    WConfigDataSelect *data = new WConfigDataSelect;
-    data->init(key, info, parent ? parent : viewer);
-    data->setIsFromTemplate(true);
-    viewer->addConfigData(data);
-}
-
-void WConfigTemplate::addSelect(const QString &path, const QString &key,
-                                const QString &defaultValue,
-                                const QStringList &options,
-                                const Properties &properties,
-                                WConfigViewer *parent) {
-    WConfigItemInfo info;
-    info.defaultValue(defaultValue);
-    for (Property p : properties)
-        info.property(p);
-    addSelect(path, key, info, parent);
-}
-
-void WConfigTemplate::addAction(const QString &path, const QString &key,
-                                ActionCallback callback,
-                                const WConfigItemInfo &info,
-                                WConfigViewer *parent) {
-    WConfigViewer *viewer = findViewer(path);
-    WConfigDataAction *data = new WConfigDataAction;
-    data->init(key, callback, info.properties(), parent ? parent : viewer);
-    data->setIsFromTemplate(true);
-    data->setInfo(info);
-    viewer->addConfigData(data);
-}
-
-void WConfigTemplate::addAction(const QString &path, const QString &key,
-                                ActionCallback callback,
-                                const Properties &properties,
-                                WConfigViewer *parent) {
-    WConfigItemInfo info;
-    for (Property p : properties)
-        info.property(p);
-    addAction(path, key, callback, info, parent);
 }
 
 void WConfigTemplate::setDeletionPolicy(const QString &path,

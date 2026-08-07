@@ -30,10 +30,6 @@ public:
                   DataType elementType = DataType::String,
                   const Properties &properties = {},
                   WConfigViewer *parent = nullptr);
-    WConfigDataObject *addObject(const QString &path, const QString &key,
-                                 const Properties &properties = {},
-                                 WConfigViewer *parent = nullptr);
-    void addObjectChild(WConfigDataObject *object, WConfigDataBase *childData);
     void addSelect(const QString &path, const QString &key,
                    const QString &defaultValue, const QStringList &options,
                    const Properties &properties = {},
@@ -41,6 +37,10 @@ public:
     void addAction(const QString &path, const QString &key,
                    ActionCallback callback, const Properties &properties = {},
                    WConfigViewer *parent = nullptr);
+    WConfigDataObject *addObject(const QString &path, const QString &key,
+                                 const Properties &properties = {},
+                                 WConfigViewer *parent = nullptr);
+    void addObjectChild(WConfigDataObject *object, WConfigDataBase *childData);
 
     void addInt(const QString &path, const QString &key,
                 const WConfigItemInfo &info, WConfigViewer *parent = nullptr);
@@ -51,16 +51,15 @@ public:
     void addBool(const QString &path, const QString &key,
                  const WConfigItemInfo &info, WConfigViewer *parent = nullptr);
     void addArray(const QString &path, const QString &key,
-                  const QVariantList &defaultValue, DataType elementType,
                   const WConfigItemInfo &info, WConfigViewer *parent = nullptr);
-    WConfigDataObject *addObject(const QString &path, const QString &key,
-                                 const WConfigItemInfo &info,
-                                 WConfigViewer *parent = nullptr);
     void addSelect(const QString &path, const QString &key,
                    const WConfigItemInfo &info, WConfigViewer *parent = nullptr);
     void addAction(const QString &path, const QString &key,
-                   ActionCallback callback, const WConfigItemInfo &info,
-                   WConfigViewer *parent = nullptr);
+                   const WConfigItemInfo &info, WConfigViewer *parent = nullptr);
+    WConfigDataObject *addObject(const QString &path, const QString &key,
+                                 const WConfigItemInfo &info,
+                                 WConfigViewer *parent = nullptr);
+
     void setDeletionPolicy(const QString &path, DeletionPolicy policy);
     void setDirectoryPolicy(
         const QString &path, AcceptPolicy policy,

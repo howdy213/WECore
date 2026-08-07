@@ -19,6 +19,6 @@ WConfigDataAction* WConfigDataAction::init(const QString& key, ActionCallback ca
     return this;
 }
 
-void WConfigDataAction::execute() const { info().callback(); }
+void WConfigDataAction::execute() const { info().callback()(); }
 
 } // namespace we::config

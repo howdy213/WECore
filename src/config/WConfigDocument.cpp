@@ -84,7 +84,7 @@ bool WConfigDocument::saveJson(const QString &filePath) {
     QFileInfo fileInfo(filePath);
     QDir dir = fileInfo.absoluteDir();
     if (!dir.exists()) {
-        if (!dir.mkpath(".")) {  // 创建整个目录路径
+        if (!dir.mkpath(".")) { // 创建整个目录路径
             return false;
         }
     }
@@ -147,7 +147,7 @@ void WConfigDocument::loadFromVariant(WConfigViewer *viewer,
             continue;
         }
         bool canCreate = false;
-        if (isRoot || m_allowCreateOnLoad) {
+        if ((isRoot && value.canConvert<QVariantMap>()) || m_allowCreateOnLoad) {
             canCreate = true;
         } else {
             canCreate = (viewer->effectiveAcceptPolicy() == AcceptPolicy::ACCEPT);
@@ -162,7 +162,7 @@ void WConfigDocument::loadFromVariant(WConfigViewer *viewer,
             if (!tmplIsObject) {
                 WConfigViewer *newChild = new WConfigViewer(key, viewer);
                 if (viewer->addChild(newChild)) {
-                    loadFromVariant(newChild, value);   // 递归加载子目录的内容
+                    loadFromVariant(newChild, value); // 递归加载子目录的内容
                 } else {
                     delete newChild;
                 }
@@ -256,23 +256,25 @@ void WConfigDocument::syncToAllPersistent() {
     };
     traverse(m_root);
 }
-static void insertNested(QVariantMap& root, const QStringList& path, const QVariant& value) {
-    if (path.isEmpty()) return;
+static void insertNested(QVariantMap &root, const QStringList &path,
+                         const QVariant &value) {
+    if (path.isEmpty())
+        return;
     if (path.size() == 1) {
         root[path.first()] = value;
     } else {
         QString first = path.first();
-        QVariantMap subMap = root[first].toMap();  // 获取当前子 map 副本
-        insertNested(subMap, path.mid(1), value);   // 递归插入
-        root[first] = subMap;                       // 写回
+        QVariantMap subMap = root[first].toMap(); // 获取当前子 map 副本
+        insertNested(subMap, path.mid(1), value); // 递归插入
+        root[first] = subMap;                     // 写回
     }
 }
 
 // 将 QSettings 中的所有扁平键转换为嵌套 QVariantMap
-static QVariantMap settingsToNestedMap(QSettings* settings) {
+static QVariantMap settingsToNestedMap(QSettings *settings) {
     QVariantMap result;
     const QStringList keys = settings->allKeys();
-    for (const QString& key : keys) {
+    for (const QString &key : keys) {
         QStringList path = key.split('/', Qt::SkipEmptyParts);
         QVariant value = settings->value(key);
         insertNested(result, path, value);
@@ -281,7 +283,8 @@ static QVariantMap settingsToNestedMap(QSettings* settings) {
 }
 
 // 递归地将嵌套 QVariantMap 展平并写入 QSettings
-static void nestedMapToSettings(const QVariantMap& map, const QString& prefix, QSettings* settings) {
+static void nestedMapToSettings(const QVariantMap &map, const QString &prefix,
+                                QSettings *settings) {
     for (auto it = map.begin(); it != map.end(); ++it) {
         QString key = prefix.isEmpty() ? it.key() : prefix + "/" + it.key();
         if (it.value().typeId() == QMetaType::QVariantMap) {
@@ -292,16 +295,18 @@ static void nestedMapToSettings(const QVariantMap& map, const QString& prefix, Q
     }
 }
 
-bool WConfigDocument::loadFromSettings(QSettings* settings) {
-    if (!settings) return false;
+bool WConfigDocument::loadFromSettings(QSettings *settings) {
+    if (!settings)
+        return false;
     QVariantMap nested = settingsToNestedMap(settings);
     loadFromVariant(m_root, nested);
     syncToAllPersistent();
     return true;
 }
 
-bool WConfigDocument::saveToSettings(QSettings* settings) {
-    if (!settings) return false;
+bool WConfigDocument::saveToSettings(QSettings *settings) {
+    if (!settings)
+        return false;
     QVariant nested = saveToVariant(m_root);
     nestedMapToSettings(nested.toMap(), QString(), settings);
     settings->sync(); // 立即写入

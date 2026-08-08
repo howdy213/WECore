@@ -1,6 +1,6 @@
 /**
  * @file we.cpp
- * @brief WE类实现文件
+ * @brief Implementation file for the WE class.
  * @author howdy213
  * @date 2026-1-30
  * @version 1.1.0

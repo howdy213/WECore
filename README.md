@@ -1,3 +1,5 @@
+中文 | [English](README_en.md)
+
 # WECore
 
 WECore 是一个基于 Qt 6 的插件化应用程序核心框架，为构建可扩展的桌面应用提供基础支撑。  
@@ -9,7 +11,7 @@ WECore 是一个基于 Qt 6 的插件化应用程序核心框架，为构建可�
 - **双模式插件**：同时支持 Qt 插件（动态库）和外部可执行文件（虚拟插件）。  
 - **统一接口**：所有插件只需实现 `WPluginInterface`（`init` / `recMsg` / `deinit`），即可被框架管理。  
 - **身份与状态**：  
-  - **永久 UUID**：每个插件在 `init()` 中必须提供一个全局唯一的永久 UUID，用于跨会话稳定识别，支持崩溃恢复与更新检测。  
+  - **永久 UUID**：每个插件在 `init()` 中必须提供一个全局唯一的永久固定 UUID，用于跨会话稳定识别，支持崩溃恢复与更新检测。  
   - **插件状态**：框架维护 `Disabled` → `NotInstalled` → `Installed` → `Running` 的状态机，并支持启用/禁用/停止等控制操作。  
 - **生命周期管理**：`WPluginManager` 统一处理加载、初始化、卸载、消息路由，并强制执行永久 UUID 校验与冲突检测。
 
@@ -25,6 +27,7 @@ WECore 是一个基于 Qt 6 的插件化应用程序核心框架，为构建可�
 ### ⚙️ 配置管理
 - 使用 `WMetaDocument`管理 JSON 配置文件，支持从文件或字符串加载/保存。  
 - 提供方便的宏 `PClass`、`PData`、`PPlugin` 快速访问核心管理器实例。
+- 提供 `WConfig` 库进行便捷的配置管理，支持带类型的配置项**、**嵌套结构**、**JSON/INI 序列化**、**UI 集成**、**线程安全访问以及基于模板的结构定义。
 
 ### 🌐 服务注册与调用
 - `WServiceRegistry` 允许插件注册命名服务，自动关联请求主题；通过 `WServiceProxy` 可进行异步、带超时的服务调用，支持 future 或回调两种模式。
@@ -44,14 +47,15 @@ WECore 是一个基于 Qt 6 的插件化应用程序核心框架，为构建可�
 | `WMetaDocument`         | JSON 配置文档类，继承自 `WMetaData<QVariant>`，提供 JSON 的加载与生成。 |
 | `WPath`                 | 路径工具类，支持模块路径获取、相对/绝对路径转换。            |
 | `WServiceRegistry`      | 服务注册表，将服务名映射到事件主题，并与提供者生命周期绑定。 |
-| `WServiceProxy`         | 异步服务调用代理，基于事件总线实现请求/应答。                |                                                          |
+| `WServiceProxy`         | 异步服务调用代理，基于事件总线实现请求/应答。                |
 | `WEBase` / `WEBaseData` | 全局数据中心，持有各管理器实例、配置等。                     |
 | `WEClass`               | 管理器工厂，对外提供 `configManager()`、`pluginManager()` 等访问接口。 |
+| `WConfig`库             | 灵活、层级化的 Qt 配置管理系统。                             |
 
 ## 依赖
 
 - **Qt 6**
-- 操作系统：Windows（部分路径处理使用了 Win32 API，跨平台需适配）
+- 操作系统：Windows，跨平台需适配。
 
 ## 快速开始
 
@@ -60,11 +64,12 @@ WECore 是一个基于 Qt 6 的插件化应用程序核心框架，为构建可�
 3. 实现自己的插件。  
 4. 在配置文件中注册插件路径，启动程序即可自动加载。  
 5. 编写 Widget（继承 `QObject` 并实现 `initWidget()` 方法），通过 Widget 管理器注册为插件的一部分。
+6. 实现服务注册，通信等功能。
 
 详细步骤与示例代码请参阅示例项目。
 
 ## 许可证
 
-WECore 使用 Apache License 2.0 开源许可证
+WECore 使用 Apache License 2.0 开源许可证，详细信息请参阅项目[LICENSE](LICENSE) 文件
 
-详细信息请参阅项目[LICENSE](LICENSE) 文件
+Qt: [LGPLv3 许可证](licenses/LICENSE.LESSER-Qt)

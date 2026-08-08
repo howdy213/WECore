@@ -1,78 +1,81 @@
+English | [中文](README.md)
+
 # WECore
 
-WECore is a Qt 6-based plugin-oriented application core framework that provides foundational support for building extensible desktop applications.  
-It encapsulates common functionalities such as plugin management, widget management, configuration management, path handling, service registration, crash protection, and persistent identification, allowing developers to quickly extend application capabilities through dynamic libraries or external executables (.exe / .bat).
+WECore is a Qt 6‑based plugin‑oriented application core framework that provides foundational support for building extensible desktop applications.  
+It encapsulates common functionality such as plugin management, widget management, configuration handling, path utilities, service registration, crash protection, and persistent identification, allowing developers to rapidly extend application capabilities through dynamic libraries or external executables (.exe / .bat).
 
 ## Key Features
 
 ### 🧩 Powerful Plugin System
 
-- **Dual‑mode plugins**: Supports both Qt plugins (dynamic libraries) and external executables (virtual plugins).  
-- **Unified interface**: All plugins only need to implement `WPluginInterface` (`init` / `recMsg` / `deinit`) to be managed by the framework.  
+- **Dual‑mode plugins**: supports both Qt plugins (dynamic libraries) and external executables (virtual plugins) simultaneously.  
+- **Unified interface**: every plugin only needs to implement `WPluginInterface` (`init` / `recMsg` / `deinit`) to be managed by the framework.  
 - **Identity and state**:  
-  - **Permanent UUID**: Each plugin must provide a globally unique permanent UUID during `init()` for stable cross‑session identification, supporting crash recovery and update detection.  
-  - **Plugin states**: The framework maintains a state machine: `Disabled` → `NotInstalled` → `Installed` → `Running`, and provides control operations like enable/disable/stop.  
-- **Lifecycle management**: `WPluginManager` handles loading, initialization, unloading, message routing, and enforces permanent UUID validation and conflict detection.
+  - **Permanent UUID**: each plugin must provide a globally unique, permanently fixed UUID in its `init()` method. This UUID enables stable identification across sessions and supports crash recovery and update detection.  
+  - **Plugin state**: the framework maintains a state machine with the transitions `Disabled` → `NotInstalled` → `Installed` → `Running`, and supports control operations such as enable, disable, and stop.  
+- **Lifecycle management**: `WPluginManager` uniformly handles loading, initialization, unloading, and message routing, and enforces permanent UUID validation and conflict detection.
 
-### 🛡️ Crash Protection & Recovery
+### 🛡️ Crash Protection and Recovery
 
-- The framework includes a built‑in crash guard singleton that writes a persistent JSON record before each call to `initPlugin()` / `initWidget()` and clears it upon success. If the process terminates unexpectedly, any leftover record identifies the component that caused the crash.  
-- **Recovery workflow**: Upon startup, the framework reads leftover records and allows developers to override virtual methods to define custom recovery strategies, preventing repeated startup failures.
+- The framework incorporates a crash‑marker singleton. Before each call to `initPlugin()` / `initWidget()`, a persistent JSON record is written; it is automatically cleared upon success. If the process terminates unexpectedly, the remaining record identifies the component that crashed last.  
+- **Recovery process**: on startup, leftover records are read, and overridable virtual methods allow developers to customize the handling strategy, preventing repeated startup failures.
 
 ### 🧱 Widget Manager
 
-- Plugins can register their own `QObject`‑derived classes as widgets with `WWidgetManager`, assigning them a stable globally unique ID (i.e., the permanent UUID).  
-- Supports property access, pattern‑based event subscription/publishing, and timeout‑aware request‑reply interactions.  
-- Automatically calls the initialization logic of each widget during `initWidget()` and integrates crash marking to ensure traceable exceptions.
+- Plugins can register their own `QObject`‑derived classes as widgets through `WWidgetManager`, assigning a stable globally unique ID (i.e., the permanent UUID).  
+- Supports property access, pattern‑matching event subscribe/publish, and timeout‑based request‑reply interaction.  
+- During the `initWidget()` stage, each widget’s initialization logic is automatically invoked, and crash markers are integrated to ensure traceability of exceptions.
 
 ### ⚙️ Configuration Management
 
 - Uses `WMetaDocument` to manage JSON configuration files, supporting load/save from files or strings.  
 - Provides convenient macros `PClass`, `PData`, `PPlugin` for quick access to core manager instances.
+- Offers the `WConfig` library for convenient configuration management, supporting typed configuration items, nested structures, JSON/INI serialization, UI integration, thread‑safe access, and template‑based structure definitions.
 
-### 🌐 Service Registration & Invocation
+### 🌐 Service Registration and Invocation
 
-- `WServiceRegistry` allows plugins to register named services, automatically linking them to event topics. `WServiceProxy` enables asynchronous, timeout‑aware service calls supporting both future‑based and callback‑based modes.
+- `WServiceRegistry` allows plugins to register named services, automatically associating them with request topics; `WServiceProxy` enables asynchronous, timeout‑enabled service calls, supporting both future and callback patterns.
 
 ### 📦 Path Utilities
 
-- `WPath` provides practical functions for obtaining executable paths, plugin paths, directory extraction, relative path resolution, etc., compatible with Windows and cross‑platform scenarios.
+- `WPath` provides practical functions such as executable path, plugin path, directory extraction, and relative path resolution, compatible with Windows and cross‑platform scenarios.
 
 ## Module Structure
 
 | Class / File            | Description                                                  |
 | ----------------------- | ------------------------------------------------------------ |
-| `WPluginManager`        | Plugin manager responsible for plugin registration, loading, initialization, state control, message sending, permanent UUID checking, and crash recovery. |
-| `WPlugin`               | Plugin instance class that encapsulates metadata, state, and lifecycle of a dynamic library or external executable. |
-| `WPluginInterface`      | Pure virtual interface that all plugins must implement (`init` / `recMsg` / `deinit`). |
-| `WVirtualPlugin`        | Adapter for external executables, turning process invocations into event bus interactions. |
-| `WWidgetManager`        | Widget management center, responsible for widget registration, property read/write, event subscription/publishing, and crash recovery. |
-| `WMetaDocument`         | JSON configuration document class derived from `WMetaData<QVariant>`, providing JSON loading and generation. |
-| `WPath`                 | Path utility class supporting module path retrieval and relative/absolute path conversion. |
-| `WServiceRegistry`      | Service registry that maps service names to event topics and binds them to provider lifecycles. |
-| `WServiceProxy`         | Asynchronous service invocation proxy based on request/reply over the event bus. |
-| `CrashGuard`            | Crash guard singleton that persists component initialization progress for automatic crash detection. |
-| `WEBase` / `WEBaseData` | Global data center holding instances of managers, configuration, etc. |
-| `WEClass`               | Manager factory offering accessors like `configManager()`, `pluginManager()`, etc. |
+| `WPluginManager`        | Plugin manager, responsible for plugin registration, loading, initialization, state control, message dispatch, permanent UUID checking, and crash recovery. |
+| `WPlugin`               | Plugin instance class, encapsulating metadata, state, and lifecycle of a dynamic library or external program. |
+| `WPluginInterface`      | Pure virtual interface that every plugin must implement (`init` / `recMsg` / `deinit`). |
+| `WVirtualPlugin`        | Adapter for external executables, converting program invocation into event‑bus interaction. |
+| `WWidgetManager`        | Widget management center, responsible for widget registration, property reading/writing, event subscribe/publish, and crash recovery. |
+| `WMetaDocument`         | JSON configuration document class, inheriting from `WMetaData<QVariant>`, providing JSON loading and generation. |
+| `WPath`                 | Path utility class, supporting module path retrieval and relative/absolute path conversion. |
+| `WServiceRegistry`      | Service registry that maps service names to event topics and binds them to the provider’s lifecycle. |
+| `WServiceProxy`         | Asynchronous service invocation proxy based on the event bus, implementing request/reply. |
+| `WEBase` / `WEBaseData` | Global data center, holding manager instances, configuration, etc. |
+| `WEClass`               | Manager factory, providing external access interfaces such as `configManager()`, `pluginManager()`. |
+| `WConfig` library       | Flexible, hierarchical Qt configuration management system.   |
 
 ## Dependencies
 
-- **Qt 6** (Core, Widgets modules; some features require GUI)  
-- Compiler supporting **C++17** or later  
-- Operating system: Windows (some path handling uses Win32 API; cross‑platform adaptation required)
+- **Qt 6**
+- Operating system: Windows; cross‑platform adaptation required.
 
 ## Quick Start
 
 1. **Add WECore** to your Qt project (source code or static/dynamic library).  
-2. Create a main application startup class (refer to [WidgetExplorer](https://github.com/howdy213/WidgetExplorer)), initialize `WEBase`, and load configuration and plugin lists.  
+2. Create the main application (refer to [WidgetExplorer](https://github.com/howdy213/WidgetExplorer)), initialize `WEBase`, and load configuration and plugin list.  
 3. Implement your own plugins.  
-4. Register plugin paths in the configuration file; the program will load them automatically on startup.  
-5. Write widgets (inherit `QObject` and implement the `initWidget()` method), and register them via the widget manager as part of a plugin.
+4. Register the plugin paths in the configuration file; they will be loaded automatically when the application starts.  
+5. Write widgets (inherit `QObject` and implement the `initWidget()` method) and register them with the Widget Manager as part of a plugin.  
+6. Implement service registration, communication, and other functionalities.
 
-For detailed steps and sample code, please see the example project.
+For detailed steps and example code, please refer to the sample projects.
 
 ## License
 
-WECore is licensed under the Apache License 2.0.
+WECore is released under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
 
-See the project [LICENSE](LICENSE) file for details.
+Qt: [LGPLv3 License](licenses/LICENSE.LESSER-Qt)

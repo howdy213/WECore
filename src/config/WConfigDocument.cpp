@@ -314,6 +314,19 @@ static void nestedMapToSettings(const QVariantMap &map, const QString &prefix,
     }
 }
 
+// 收集嵌套 QVariantMap 中所有叶子键的完整路径
+static void collectLeafKeys(const QVariantMap &map, const QString &prefix,
+                            QStringList &keys) {
+    for (auto it = map.begin(); it != map.end(); ++it) {
+        QString key = prefix.isEmpty() ? it.key() : prefix + "/" + it.key();
+        if (it.value().typeId() == QMetaType::QVariantMap) {
+            collectLeafKeys(it.value().toMap(), key, keys);
+        } else {
+            keys.append(key);
+        }
+    }
+}
+
 bool WConfigDocument::loadFromSettings(QSettings *settings) {
     if (!settings)
         return false;
@@ -327,7 +340,22 @@ bool WConfigDocument::saveToSettings(QSettings *settings) {
     if (!settings)
         return false;
     QVariant nested = saveToVariant(m_root);
-    nestedMapToSettings(nested.toMap(), QString(), settings);
+    QVariantMap nestedMap = nested.toMap();
+
+    // 收集文档将写入的所有键
+    QStringList docKeys;
+    collectLeafKeys(nestedMap, QString(), docKeys);
+
+    // 删除 QSettings 中存在但文档中已不存在的键（持久化删除操作）
+    const QStringList currentKeys = settings->allKeys();
+    for (const QString &key : currentKeys) {
+        if (!docKeys.contains(key)) {
+            settings->remove(key);
+        }
+    }
+
+    // 写入当前文档的所有键
+    nestedMapToSettings(nestedMap, QString(), settings);
     settings->sync(); // 立即写入
     return true;
 }

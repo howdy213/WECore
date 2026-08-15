@@ -56,7 +56,8 @@ WConfigItemWidget::WConfigItemWidget(WConfigDataBase *data, QWidget *parent)
 
     // 重置按钮
     m_resetButton = new QToolButton(this);
-    m_resetButton->setIcon(style()->standardIcon(QStyle::SP_BrowserReload));
+    m_resetButton->setText("🔄");
+    m_resetButton->setFixedSize(24,24);
     m_resetButton->setToolTip(tr("Reset to default value"));
     m_resetButton->setVisible(!m_data->info().defaultValue().isNull());
     connect(m_resetButton, &QToolButton::clicked, this,
@@ -71,10 +72,12 @@ WConfigItemWidget::WConfigItemWidget(WConfigDataBase *data, QWidget *parent)
     descFont.setPointSize(descFont.pointSize() - 1);
     m_descLabel->setFont(descFont);
     m_descLabel->setStyleSheet("color: #666666;");
+    m_descLabel->setObjectName("DescLabel");
     mainLayout->addWidget(m_descLabel);
 
     m_undoButton = new QToolButton(this);
-    m_undoButton->setIcon(style()->standardIcon(QStyle::SP_FileDialogBack));
+    m_undoButton->setText("⬅");
+    m_undoButton->setFixedSize(24,24);
     m_undoButton->setToolTip(tr("Undo changes"));
     m_undoButton->setVisible(false);
     connect(m_undoButton, &QToolButton::clicked, this,
@@ -154,12 +157,14 @@ void WConfigItemWidget::setCurrentValue(const QVariant &value) {
 void WConfigItemWidget::setSelected(bool selected)
 {
     if (!m_nameLabel) return;
-    QPalette pal = m_nameLabel->palette();
+    // QPalette pal = m_nameLabel->palette();
     if (selected)
-        pal.setColor(QPalette::WindowText, Qt::blue);
+        m_nameLabel->setStyleSheet("color: #89b2b8ff;");
+    //pal.setColor(QPalette::WindowText, Qt::blue);
     else
-        pal.setColor(QPalette::WindowText, m_defaultTextColor);
-    m_nameLabel->setPalette(pal);
+        m_nameLabel->setStyleSheet("");
+    //pal.setColor(QPalette::WindowText, m_defaultTextColor);
+    //m_nameLabel->setPalette(pal);
 }
 
 void WConfigItemWidget::mousePressEvent(QMouseEvent *event) {

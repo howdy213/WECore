@@ -34,8 +34,9 @@
 namespace we::config {
 
 WConfigWidget::WConfigWidget(WConfig *config, QWidget *parent)
-    : QDialog(parent), m_config(config), m_treeWidget(new QTreeWidget),
-    m_scrollArea(new QScrollArea), m_contentWidget(new QWidget),
+    : QDialog(parent), m_config(config), m_treeWidget(new QTreeWidget(this)),
+    m_scrollArea(new QScrollArea(this)),
+    m_contentWidget(new QWidget(m_scrollArea)),
     m_contentLayout(new QVBoxLayout(m_contentWidget)),
     m_restartLabel(new QLabel(
           tr("Some settings will take effect after restart."), this)),
@@ -46,8 +47,11 @@ WConfigWidget::WConfigWidget(WConfig *config, QWidget *parent)
     setWindowTitle(tr("Settings"));
     setMinimumSize(800, 600);
 
+    // 允许 m_contentWidget 用 QSS 绘制背景
+    // m_contentWidget->setAttribute(Qt::WA_StyledBackground, true);
+
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    QSplitter *splitter = new QSplitter(Qt::Horizontal);
+    QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
     m_treeWidget->setHeaderHidden(true);
     m_treeWidget->setMinimumWidth(200);
     splitter->addWidget(m_treeWidget);
@@ -60,15 +64,17 @@ WConfigWidget::WConfigWidget(WConfig *config, QWidget *parent)
         rootDisplay = tr("Root");
     m_rootItem->setText(0, rootDisplay);
     m_rootItem->setToolTip(0, rootViewer->description());
-    m_rootItem->setData(0, Qt::UserRole, "");  // 空路径表示根
+    m_rootItem->setData(0, Qt::UserRole, ""); // 空路径表示根
     m_treeWidget->addTopLevelItem(m_rootItem);
-    m_treeWidget->expandItem(m_rootItem);      // 初始展开
+    m_treeWidget->expandItem(m_rootItem); // 初始展开
+    m_treeWidget->setRootIsDecorated(false);
 
     // 强制根节点永远展开
-    connect(m_treeWidget, &QTreeWidget::itemCollapsed, this, [this](QTreeWidgetItem *item) {
-        if (item == m_rootItem) {
-            m_treeWidget->expandItem(item);   // 立刻重新展开
-        }
+    connect(m_treeWidget, &QTreeWidget::itemCollapsed, this,
+            [this](QTreeWidgetItem *item) {
+                if (item == m_rootItem) {
+            m_treeWidget->expandItem(item); // 立刻重新展开
+                }
     });
 
     // 添加所有子目录
@@ -91,6 +97,7 @@ WConfigWidget::WConfigWidget(WConfig *config, QWidget *parent)
     // 底部按钮行
     QHBoxLayout *bottomLayout = new QHBoxLayout();
     m_restartLabel->setStyleSheet("color: #e67e22;");
+    m_restartLabel->setObjectName("RestartLabel");
     m_restartLabel->setVisible(false);
     bottomLayout->addWidget(m_restartLabel);
     bottomLayout->addStretch();
@@ -126,8 +133,7 @@ WConfigWidget::~WConfigWidget() {
     }
 }
 
-void WConfigWidget::addVerification(std::function<bool(WConfig*)> func)
-{
+void WConfigWidget::addVerification(std::function<bool(WConfig *)> func) {
     if (func) {
         m_verifications.append(func);
     }
@@ -182,7 +188,7 @@ void WConfigWidget::onTreeItemClicked(QTreeWidgetItem *item, int column) {
     QString path = item->data(0, Qt::UserRole).toString();
     WConfigViewer *viewer = nullptr;
     if (path.isEmpty()) {
-        viewer = m_config->document()->root();   // 根节点
+        viewer = m_config->document()->root(); // 根节点
     } else {
         viewer = m_config->document()->root()->findChildViewer(path);
     }
@@ -195,16 +201,17 @@ void WConfigWidget::displayConfig(WConfigViewer *viewer) {
     m_itemWidgets.clear();
 
     for (WConfigDataBase *data : viewer->allConfigData()) {
-        WConfigItemWidget *itemWidget = new WConfigItemWidget(data);
+        WConfigItemWidget *itemWidget =
+            new WConfigItemWidget(data, m_contentWidget);
         m_contentLayout->addWidget(itemWidget);
         m_itemWidgets.append(itemWidget);
         connect(itemWidget, &WConfigItemWidget::clicked, this,
                 [this](WConfigItemWidget *w) {
                     if (m_selectedItemWidget == w)
-                return;
-                    for (auto *item : m_itemWidgets) {
-                item->setSelected(false);
-                    }
+                        return;
+                    for (auto *item : std::as_const(m_itemWidgets))
+                        item->setSelected(false);
+
                     w->setSelected(true);
                     m_selectedItemWidget = w;
         });
@@ -256,7 +263,7 @@ void WConfigWidget::onSaveClicked() {
     // 同步当前页编辑器
     setEnabled(false);
     syncCurrentPage();
-    for (const auto& verify : m_verifications) {
+    for (const auto &verify : m_verifications) {
         if (!verify(m_config)) {
             setEnabled(true);
             return;
@@ -442,7 +449,7 @@ void WConfigWidget::onRemoveItemClicked() {
     WConfigViewer *parentViewer = data->parent();
     if (!parentViewer)
         return;
-    parentViewer->removeConfigData(data);
+    parentViewer->removeConfigData(data, true);
     delete data;
 
     refreshCurrentPage();
@@ -451,7 +458,7 @@ void WConfigWidget::onRemoveItemClicked() {
 }
 
 void WConfigWidget::syncCurrentPage() {
-    for (WConfigItemWidget *widget : m_itemWidgets) {
+    for (WConfigItemWidget *widget : std::as_const(m_itemWidgets)) {
         // 调用 currentValue() 会触发编辑器内部的 getData()，从而将界面值写入数据项
         widget->currentValue();
     }

@@ -88,6 +88,7 @@ namespace Plugins {
 constexpr auto PluginConfigPath = "Path";
 constexpr auto ConfigPath = "plugins/plugins.json";
 constexpr auto ConfigFolder = "plugins/";
+constexpr auto Plugins = "Plugins";
 } // namespace Plugins
 
 /// Message / data map keys.
@@ -111,6 +112,11 @@ constexpr auto Type = "Type";             ///< string
 constexpr auto MainWidget = "MainWidget"; ///< bool
 constexpr auto Autorun = "Autorun";       ///< bool
 constexpr auto Admin = "Admin";           ///< bool
+constexpr auto Depends = "Depends";       ///< string(string list)
+constexpr auto DependsPath = "DependsPath"; ///< string(path list)
+constexpr auto LocalUuid = "LocalUuid"; ///< string
+constexpr auto Uuid = "Uuid"; ///< string
+constexpr auto ConfigPath = "ConfigPath"; ///< string(path)
 } // namespace Plugin
 
 /// Widget metadata keys.

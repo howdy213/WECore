@@ -34,6 +34,7 @@
 
 #include "WECore/Def/wedef.h"
 #include "WECore/plugin/wplugininterface.h"
+#include "WECore/plugin/wpluginstatemachine.h"
 
 namespace we {
 
@@ -62,13 +63,15 @@ public:
     /// Destroys the plugin and releases all resources.
     virtual ~WPlugin();
 
+    WPluginManager *parent() const;
+    
     /**
    * @brief Reads plugin configuration from a file.
    * @param filePath The root path used to resolve relative plugin paths.
    * @param config   The full path to the configuration file.
    * @return @c true if the configuration was loaded successfully.
    */
-    bool readConfig(const QString &filePath, const QString &config);
+    bool readConfig(const QString &filePath, QJsonObject config);
 
     /**
    * @brief Loads the actual plugin component (library or executable).
@@ -107,7 +110,13 @@ public:
    * @brief Returns the unique identifier assigned by the plugin manager.
    * @return A QUuid, or a null UUID if the plugin has not been registered.
    */
-    QUuid getId() const;
+    QUuid getLocalUuid() const;
+
+    /**
+   * @brief Returns the local UUID assigned to the plugin.
+   * @return A QUuid, or a null UUID if the plugin has not been registered.
+   */
+    QUuid getUuid() const;
 
     /**
    * @brief Sets a metadata value.
@@ -126,11 +135,32 @@ public:
    */
     WPluginInterface *inst();
 
+    /**
+     * @brief Returns the plugin's metadata document.
+     * @return A WMetaDocument object.
+     */
+    const WMetaDocument &getMetaDocument() const;
+    
+    /**
+     * @brief Gets the current state of the plugin.
+     * @return The current plugin state.
+     */
+    PluginState getState() const;
+    
+    /**
+     * @brief Attempts to transition to a new state.
+     * @param newState The target state.
+     * @return true if transition was successful, false otherwise.
+     */
+    bool setState(PluginState newState);
 private:
     /// Helper: loads a shared library / DLL plugin.
     bool loadDll(const QString &dllPath);
     /// Helper: loads an executable as a virtual plugin.
     bool loadExe(const QString &exePath);
+    
+    /// State machine for managing plugin lifecycle
+    WPluginStateMachine *m_stateMachine;
 
     QScopedPointer<WPluginPrivate> d_ptr;
     Q_DECLARE_PRIVATE(WPlugin)

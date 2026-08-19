@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file wpluginmanager.cpp
  * @brief Implementation of WPluginManager.
  *
@@ -25,6 +25,8 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <WECore/def/wedef.h>
+#include <WECore/metadata/wmetadocument.h>
 
 #include "WECore/plugin/wplugin.h"
 #include "WECore/plugin/wplugininterface.h"
@@ -72,7 +74,12 @@ bool WPluginManager::addPlugin(WPlugin *plugin)
     if (!plugin)
         return false;
 
-    const QUuid newId = QUuid::createUuid();
+    QUuid newId = plugin->getLocalUuid();
+    if (newId.isNull())
+        newId = QUuid::createUuid();
+    plugin->setMetaData(Plugin::LocalUuid, newId);
+    plugin->getMetaDocument().save(plugin->getMetaData(Plugin::ConfigPath).toString());
+    
     const QString baseName = qvariant_cast<QString>(plugin->getMetaData(Plugin::Name));
     const QString uniqueName = makeUniquePluginName(baseName, QUuid());
     plugin->setMetaData(Plugin::Name, uniqueName);
@@ -82,18 +89,40 @@ bool WPluginManager::addPlugin(WPlugin *plugin)
 }
 
 // Loading / Unloading
-/// Loads a plugin’s backend. Returns false if the plugin is not registered.
+/// Loads a plugin's backend. Returns false if the plugin is not registered.
 bool WPluginManager::loadPlugin(WPlugin *plugin)
 {
-    if (!plugin)
+    Q_D(WPluginManager);
+    if (!plugin) {
+        qWarning() << "WPluginManager::loadPlugin: Plugin is null";
         return false;
-    if (getUuid(plugin).isNull())
+    }
+    
+    QUuid localUuid = plugin->getLocalUuid();
+    if (!d->plugins.contains(localUuid)) {
+        qWarning() << "WPluginManager::loadPlugin: Plugin not found in registry:" << localUuid;
         return false;
-    if (plugin->available())
+    }
+    
+    if (plugin->available()) {
+        qDebug() << "WPluginManager::loadPlugin: Plugin already loaded:" << plugin->getMetaData(Plugin::Name).toString();
         return true;   // Already loaded
+    }
+
+    // Debug: Print plugin info before loading
+    qDebug() << "WPluginManager::loadPlugin: Loading plugin:" 
+             << plugin->getMetaData(Plugin::Name).toString()
+             << "Path:" << plugin->getMetaData(Plugin::Path).toString()
+             << "Current state:" << static_cast<int>(plugin->getState());
 
     // TODO: Check plugin dependencies before loading.
-    return plugin->load();
+    bool result = plugin->load();
+    
+    // Debug: Print load result
+    qDebug() << "WPluginManager::loadPlugin: Load result:" << result 
+             << "Final state:" << static_cast<int>(plugin->getState());
+    
+    return result;
 }
 
 /// Unloads a specific plugin and removes it from the registry.
@@ -103,7 +132,7 @@ bool WPluginManager::unloadPlugin(WPlugin *plugin)
     if (!plugin)
         return false;
 
-    const QUuid id = getUuid(plugin);
+    const QUuid id = plugin->getLocalUuid();
     if (id.isNull())
         return false;
 
@@ -114,8 +143,27 @@ bool WPluginManager::unloadPlugin(WPlugin *plugin)
     if (!it.value()->unload())
         return false;
 
-    d->plugins.erase(it);
+    //d->plugins.erase(it);
     return true;
+}
+
+/// Unloads a plugin but keeps it in the registry (hot unload).
+bool WPluginManager::hotUnloadPlugin(WPlugin *plugin)
+{
+    Q_D(WPluginManager);
+    if (!plugin)
+        return false;
+
+    const QUuid id = plugin->getLocalUuid();
+    if (id.isNull())
+        return false;
+
+    auto it = d->plugins.find(id);
+    if (it == d->plugins.end())
+        return false;
+
+    // Only unload the plugin, don't remove from registry
+    return it.value()->unload();
 }
 
 /// Unloads every plugin. Uses a list of UUIDs to safely iterate while erasing.
@@ -137,11 +185,12 @@ void WPluginManager::unloadAllPlugins()
 /// Initialises a plugin, setting up widget integration and invoking the callback.
 bool WPluginManager::initPlugin(WPlugin *plugin, InitDataProc proc)
 {
+    Q_D(WPluginManager);
     if (!plugin)
         return false;
     if (!plugin->available())
         return false;
-    if (getUuid(plugin).isNull())
+    if (!d->plugins.contains(plugin->getLocalUuid()))
         return false;
 
     const QString type = qvariant_cast<QString>(plugin->getMetaData(Plugin::Type));
@@ -168,9 +217,9 @@ bool WPluginManager::initPlugin(WPlugin *plugin, InitDataProc proc)
     data.object = new QObject(this);
 
     // Register the plugin widget with the global widget manager.
-    widgetMgr->addWidget(plugin->getId(), data.object, plugin->inst());
+    widgetMgr->addWidget(plugin->getLocalUuid(), data.object, plugin->inst());
     widgetMgr->setAttr(data.object, Widget::Name, plugin->getMetaData(Plugin::Name));
-    widgetMgr->setAttr(data.object, Widget::ParentUuid, plugin->getId());
+    widgetMgr->setAttr(data.object, Widget::ParentUuid, plugin->getLocalUuid());
 
     proc(data);
     return iface->init(data);
@@ -218,18 +267,6 @@ QVector<WPlugin *> WPluginManager::allPluginsInst() const
     Q_D(const WPluginManager);
     return d->plugins.values().toVector();
 }
-
-/// Finds the UUID of a plugin instance.
-QUuid WPluginManager::getUuid(const WPlugin *plugin) const
-{
-    Q_D(const WPluginManager);
-    for (auto it = d->plugins.cbegin(); it != d->plugins.cend(); ++it) {
-        if (it.value() == plugin)
-            return it.key();
-    }
-    return QUuid();
-}
-
 
 // Metadata persistence
 /// Stores metadata, applying name‑uniqueness logic if the key is Plugin::Name.

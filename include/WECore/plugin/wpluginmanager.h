@@ -97,13 +97,20 @@ public:
     bool initPlugin(WPlugin *plugin, InitDataProc proc = [](WMessage &) {});
 
     /**
-   * @brief Unloads a plugin and removes it from the registry.
-   * @param plugin  The plugin to unload.
-   * @return @c true if the plugin was successfully unloaded and removed.
-   */
+     * @brief Unloads a plugin and removes it from the registry.
+     * @param plugin  The plugin to unload.
+     * @return @c true if the plugin was successfully unloaded and removed.
+     */
     bool unloadPlugin(WPlugin *plugin);
 
-    /// Unloads every registered plugin.
+    /**
+     * @brief Unloads a plugin but keeps it in the registry (hot unload).
+     * @param plugin  The plugin to hot unload.
+     * @return @c true if the plugin was successfully unloaded.
+     */
+    bool hotUnloadPlugin(WPlugin *plugin);
+
+    /// Unloads every plugin.
     void unloadAllPlugins();
 
     /**
@@ -154,13 +161,6 @@ public:
    * @return A vector of UUIDs.
    */
     QVector<QUuid> allPluginsId() const;
-
-    /**
-   * @brief Retrieves the UUID assigned to a given plugin instance.
-   * @param plugin  A registered plugin.
-   * @return The plugin’s UUID, or a null UUID if not found.
-   */
-    QUuid getUuid(const WPlugin *plugin) const;
 
 public slots:
     /**

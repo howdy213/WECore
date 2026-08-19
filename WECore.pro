@@ -10,7 +10,7 @@
 #
 # Copyright 2025-2026 howdy213
 # Licensed under the Apache License, Version 2.0
-QT += widgets
+QT += widgets statemachine
 TARGET = wecore
 TEMPLATE = lib
 
@@ -70,6 +70,7 @@ HEADERS += \
     include/WECore/plugin/wpluginmanager.h \
     include/WECore/plugin/wpluginmessage.h \
     include/WECore/plugin/wpluginproxy.h \
+    include/WECore/plugin/wpluginstatemachine.h \
     include/WECore/plugin/wvirtualplugin.h \
     include/WECore/service/wserviceregistry.h \
     include/WECore/service/wserviceproxy.h \
@@ -112,6 +113,7 @@ SOURCES += \
     src/plugin/wplugin.cpp \
     src/plugin/wpluginmanager.cpp \
     src/plugin/wpluginproxy.cpp \
+    src/plugin/wpluginstatemachine.cpp \
     src/plugin/wvirtualplugin.cpp \
     src/service/wserviceregistry.cpp \
     src/service/wserviceproxy.cpp \

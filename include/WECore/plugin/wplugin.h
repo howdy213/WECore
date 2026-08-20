@@ -7,7 +7,7 @@
  * either a dynamically loaded library (DLL) or an external executable (EXE).
  *
  * @author howdy213
- * @date 2026-05-01
+ * @date 2026-08-20
  * @version 2.0.0
  *
  * Copyright 2025-2026 howdy213
@@ -168,7 +168,6 @@ private:
 
 } // namespace we
 
-// Allow WPlugin pointers to be used inside QVariant.
 Q_DECLARE_METATYPE(we::WPlugin *)
 
 #endif // WPLUGIN_H

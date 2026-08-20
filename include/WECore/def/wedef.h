@@ -8,7 +8,7 @@
  * forward‑declares every major class in the library.
  *
  * @author howdy213
- * @date 2026-05-01
+ * @date 2026-08-20
  * @version 2.0.0
  *
  * Copyright 2025-2026 howdy213
@@ -96,27 +96,28 @@ namespace Data {
 constexpr auto Plugin = "Plugin"; ///< WPlugin*
 constexpr auto WEBase = "WE";     ///< WEBase*
 constexpr auto Params = "Params"; ///< string(string list)
-constexpr auto Data = "Data"; ///< string(string list)
+constexpr auto Data = "Data";     ///< string(string list)
 } // namespace Data
 
 /// Plugin metadata keys.
 namespace Plugin {
-constexpr auto Version = "Version";       ///< string
-constexpr auto Name = "Name";             ///< string
-constexpr auto Init = "Init";             ///< string(string list)
-constexpr auto Path = "Path";             ///< string(path)
-constexpr auto Date = "Date";             ///< string
-constexpr auto Author = "Author";         ///< string
-constexpr auto Desc = "Desc";             ///< string
-constexpr auto Type = "Type";             ///< string
-constexpr auto MainWidget = "MainWidget"; ///< bool
-constexpr auto Autorun = "Autorun";       ///< bool
-constexpr auto Admin = "Admin";           ///< bool
-constexpr auto Depends = "Depends";       ///< string(string list)
+constexpr auto Version = "Version";         ///< string
+constexpr auto Name = "Name";               ///< string
+constexpr auto Init = "Init";               ///< string(string list)
+constexpr auto Path = "Path";               ///< string(path)
+constexpr auto RelativePath = "File";       ///< string(path)
+constexpr auto Date = "Date";               ///< string
+constexpr auto Author = "Author";           ///< string
+constexpr auto Desc = "Desc";               ///< string
+constexpr auto Type = "Type";               ///< string
+constexpr auto MainWidget = "MainWidget";   ///< bool
+constexpr auto Autorun = "Autorun";         ///< bool
+constexpr auto Admin = "Admin";             ///< bool
+constexpr auto Depends = "Depends";         ///< string(string list)
 constexpr auto DependsPath = "DependsPath"; ///< string(path list)
-constexpr auto LocalUuid = "LocalUuid"; ///< string
-constexpr auto Uuid = "Uuid"; ///< string
-constexpr auto ConfigPath = "ConfigPath"; ///< string(path)
+constexpr auto LocalUuid = "LocalUuid";     ///< string
+constexpr auto Uuid = "Uuid";               ///< string
+constexpr auto ConfigPath = "ConfigPath";   ///< string(path)
 } // namespace Plugin
 
 /// Widget metadata keys.

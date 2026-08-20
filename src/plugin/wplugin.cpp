@@ -6,8 +6,8 @@
  * implementations.
  *
  * @author howdy213
- * @date 2026-1-30
- * @version 1.1.0
+ * @date 2026-08-20
+ * @version 2.0.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -106,7 +106,7 @@ bool WPlugin::readConfig(const QString &filePath, QJsonObject config) {
     if (!d->doc.load(QJsonDocument(config).toJson(), false))
         return false;
 
-    const QString relativePath = qvariant_cast<QString>(d->doc.get(Plugin::Path));
+    const QString relativePath = qvariant_cast<QString>(d->doc.get(Plugin::RelativePath));
     const QString absolutePath = WPath().resolvePath(filePath, relativePath);
     d->doc.set(Plugin::Path, absolutePath);
     d->doc.set(Plugin::ConfigPath, filePath);

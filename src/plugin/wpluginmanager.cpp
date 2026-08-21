@@ -45,44 +45,37 @@ namespace we {
  * Stores the main plugin registry and keeps internal state hidden
  * from the public header.
  */
-class WPluginManagerPrivate
-{
+class WPluginManagerPrivate {
 public:
     /// Maps plugin UUID to the plugin instance.
     QHash<QUuid, WPlugin *> plugins;
 };
 
-
 // Construction / Destruction
 /// Creates an empty manager.
 WPluginManager::WPluginManager(QObject *parent)
-    : QObject(parent)
-    , d_ptr(new WPluginManagerPrivate)
-{
-}
+    : QObject(parent), d_ptr(new WPluginManagerPrivate) {}
 
 /// Destructor. The QScopedPointer automatically deletes the private data.
 /// Plugins should have been unloaded before destruction.
 WPluginManager::~WPluginManager() = default;
 
-
 // Plugin registration
 /// Registers a plugin, assigning a unique ID and ensuring a unique name.
-bool WPluginManager::addPlugin(WPlugin *plugin)
-{
+bool WPluginManager::addPlugin(WPlugin *plugin) {
     Q_D(WPluginManager);
     if (!plugin)
         return false;
 
-    QUuid newId = plugin->getLocalUuid();
+    QUuid newId = plugin->localUuid();
     if (newId.isNull())
         newId = QUuid::createUuid();
     plugin->setMetaData(Plugin::LocalUuid, newId);
-    plugin->getMetaDocument().save(plugin->getMetaData(Plugin::ConfigPath).toString());
-    
-    const QString baseName = qvariant_cast<QString>(plugin->getMetaData(Plugin::Name));
-    const QString uniqueName = makeUniquePluginName(baseName, QUuid());
-    plugin->setMetaData(Plugin::Name, uniqueName);
+    plugin->getMetaDocument().save(plugin->configPath());
+
+    const QString baseName = plugin->name();
+    const QString uniqueName = makeUniquePluginName(baseName, newId);
+    plugin->setName(uniqueName);
 
     d->plugins.insert(newId, plugin);
     return true;
@@ -90,49 +83,39 @@ bool WPluginManager::addPlugin(WPlugin *plugin)
 
 // Loading / Unloading
 /// Loads a plugin's backend. Returns false if the plugin is not registered.
-bool WPluginManager::loadPlugin(WPlugin *plugin)
-{
+bool WPluginManager::loadPlugin(WPlugin *plugin) {
     Q_D(WPluginManager);
     if (!plugin) {
         qWarning() << "WPluginManager::loadPlugin: Plugin is null";
         return false;
     }
-    
-    QUuid localUuid = plugin->getLocalUuid();
+
+    QUuid localUuid = plugin->localUuid();
     if (!d->plugins.contains(localUuid)) {
-        qWarning() << "WPluginManager::loadPlugin: Plugin not found in registry:" << localUuid;
+        qWarning() << "WPluginManager::loadPlugin: Plugin not found in registry:"
+                   << localUuid;
         return false;
     }
-    
-    if (plugin->available()) {
-        qDebug() << "WPluginManager::loadPlugin: Plugin already loaded:" << plugin->getMetaData(Plugin::Name).toString();
-        return true;   // Already loaded
-    }
 
-    // Debug: Print plugin info before loading
-    qDebug() << "WPluginManager::loadPlugin: Loading plugin:" 
-             << plugin->getMetaData(Plugin::Name).toString()
-             << "Path:" << plugin->getMetaData(Plugin::Path).toString()
-             << "Current state:" << static_cast<int>(plugin->getState());
+    if (plugin->available()) {
+        qDebug() << "WPluginManager::loadPlugin: Plugin already loaded:"
+                 << plugin->name();
+        return true; // Already loaded
+    }
 
     // TODO: Check plugin dependencies before loading.
     bool result = plugin->load();
-    
-    // Debug: Print load result
-    qDebug() << "WPluginManager::loadPlugin: Load result:" << result 
-             << "Final state:" << static_cast<int>(plugin->getState());
-    
+
     return result;
 }
 
 /// Unloads a specific plugin and removes it from the registry.
-bool WPluginManager::unloadPlugin(WPlugin *plugin)
-{
+bool WPluginManager::unloadPlugin(WPlugin *plugin) {
     Q_D(WPluginManager);
     if (!plugin)
         return false;
 
-    const QUuid id = plugin->getLocalUuid();
+    const QUuid id = plugin->localUuid();
     if (id.isNull())
         return false;
 
@@ -143,18 +126,17 @@ bool WPluginManager::unloadPlugin(WPlugin *plugin)
     if (!it.value()->unload())
         return false;
 
-    //d->plugins.erase(it);
+    // d->plugins.erase(it);
     return true;
 }
 
 /// Unloads a plugin but keeps it in the registry (hot unload).
-bool WPluginManager::hotUnloadPlugin(WPlugin *plugin)
-{
+bool WPluginManager::hotUnloadPlugin(WPlugin *plugin) {
     Q_D(WPluginManager);
     if (!plugin)
         return false;
 
-    const QUuid id = plugin->getLocalUuid();
+    const QUuid id = plugin->localUuid();
     if (id.isNull())
         return false;
 
@@ -167,8 +149,7 @@ bool WPluginManager::hotUnloadPlugin(WPlugin *plugin)
 }
 
 /// Unloads every plugin. Uses a list of UUIDs to safely iterate while erasing.
-void WPluginManager::unloadAllPlugins()
-{
+void WPluginManager::unloadAllPlugins() {
     Q_D(WPluginManager);
     const QVector<QUuid> ids = d->plugins.keys().toVector();
     for (const QUuid &id : ids) {
@@ -180,25 +161,23 @@ void WPluginManager::unloadAllPlugins()
     }
 }
 
-
 // Plugin initialisation
-/// Initialises a plugin, setting up widget integration and invoking the callback.
-bool WPluginManager::initPlugin(WPlugin *plugin, InitDataProc proc)
-{
+/// Initialises a plugin, setting up widget integration and invoking the
+/// callback.
+bool WPluginManager::initPlugin(WPlugin *plugin, InitDataProc proc) {
     Q_D(WPluginManager);
     if (!plugin)
         return false;
     if (!plugin->available())
         return false;
-    if (!d->plugins.contains(plugin->getLocalUuid()))
+    if (!d->plugins.contains(plugin->localUuid()))
         return false;
 
-    const QString type = qvariant_cast<QString>(plugin->getMetaData(Plugin::Type));
+    const QString type = plugin->type();
 
     // EXE plugins may skip initialisation if the "Init" key is "default".
     if (type == QLatin1String("exe")) {
-        const QString initFlag =
-            qvariant_cast<QString>(plugin->getMetaData(Plugin::Init));
+        const QString initFlag = plugin->initArg();
         if (initFlag == QLatin1String("default"))
             return false;
     }
@@ -217,20 +196,18 @@ bool WPluginManager::initPlugin(WPlugin *plugin, InitDataProc proc)
     data.object = new QObject(this);
 
     // Register the plugin widget with the global widget manager.
-    widgetMgr->addWidget(plugin->getLocalUuid(), data.object, plugin->inst());
-    widgetMgr->setAttr(data.object, Widget::Name, plugin->getMetaData(Plugin::Name));
-    widgetMgr->setAttr(data.object, Widget::ParentUuid, plugin->getLocalUuid());
+    widgetMgr->addWidget(plugin->localUuid(), data.object, plugin->inst());
+    widgetMgr->setAttr(data.object, Widget::Name, plugin->name());
+    widgetMgr->setAttr(data.object, Widget::ParentUuid, plugin->localUuid());
 
     proc(data);
     return iface->init(data);
 }
 
-
 // Queries
 /// Returns all plugins matching a key/value metadata pair.
 QVector<QUuid> WPluginManager::getPluginByAttr(const QString &key,
-                                               const QVariant &value) const
-{
+                                               const QVariant &value) const {
     Q_D(const WPluginManager);
     QVector<QUuid> result;
     for (auto it = d->plugins.cbegin(); it != d->plugins.cend(); ++it) {
@@ -241,39 +218,33 @@ QVector<QUuid> WPluginManager::getPluginByAttr(const QString &key,
 }
 
 /// Finds a plugin UUID by name (first match).
-QUuid WPluginManager::getPluginByName(const QString &name) const
-{
+QUuid WPluginManager::getPluginByName(const QString &name) const {
     const QVector<QUuid> list = getPluginByAttr(Plugin::Name, name);
     return list.isEmpty() ? QUuid() : list.first();
 }
 
 /// Returns the plugin instance for a given UUID, or nullptr.
-WPlugin *WPluginManager::getPluginById(const QUuid &id) const
-{
+WPlugin *WPluginManager::getPluginById(const QUuid &id) const {
     Q_D(const WPluginManager);
     return d->plugins.value(id, nullptr);
 }
 
 /// Returns UUIDs of all registered plugins.
-QVector<QUuid> WPluginManager::allPluginsId() const
-{
+QVector<QUuid> WPluginManager::allPluginsId() const {
     Q_D(const WPluginManager);
     return d->plugins.keys().toVector();
 }
 
 /// Returns pointers to all registered plugin instances.
-QVector<WPlugin *> WPluginManager::allPluginsInst() const
-{
+QVector<WPlugin *> WPluginManager::allPluginsInst() const {
     Q_D(const WPluginManager);
     return d->plugins.values().toVector();
 }
 
 // Metadata persistence
 /// Stores metadata, applying name‑uniqueness logic if the key is Plugin::Name.
-QVariant WPluginManager::setPluginData(const QUuid &id,
-                                       const QString &key,
-                                       const QVariant &value)
-{
+QVariant WPluginManager::setPluginData(const QUuid &id, const QString &key,
+                                       const QVariant &value) {
     Q_D(WPluginManager);
     if (!d->plugins.contains(id))
         return value;
@@ -285,13 +256,10 @@ QVariant WPluginManager::setPluginData(const QUuid &id,
     return QVariant::fromValue(uniqueName);
 }
 
-
 // Message routing
 
-
 /// Sends a message to the plugin whose name matches msg.dest.
-bool WPluginManager::sendMsg(WMessage &msg)
-{
+bool WPluginManager::sendMsg(WMessage &msg) {
     WPlugin *plugin = getPluginById(getPluginByName(msg.dest));
     if (!plugin)
         return false;
@@ -305,8 +273,7 @@ bool WPluginManager::sendMsg(WMessage &msg)
 }
 
 QString WPluginManager::makeUniquePluginName(const QString &baseName,
-                                             const QUuid &excludeId) const
-{
+                                             const QUuid &excludeId) const {
     Q_D(const WPluginManager);
 
     // Collect all names currently in use, skipping the plugin being renamed.
@@ -314,8 +281,7 @@ QString WPluginManager::makeUniquePluginName(const QString &baseName,
     for (auto it = d->plugins.cbegin(); it != d->plugins.cend(); ++it) {
         if (it.key() == excludeId)
             continue;
-        const QString name = qvariant_cast<QString>(
-            it.value()->getMetaData(Plugin::Name));
+        const QString name = it.value()->name();
         if (!name.isEmpty())
             used.insert(name);
     }

@@ -178,8 +178,7 @@ void WWidgetManager::initWidget() {
         if (w->parent() == pluginMgr) {
             // The parent is the plugin manager, so retrieve the real name from the
             // plugin.
-            QVariant name =
-                pluginMgr->getPluginById(it->id)->getMetaData(Plugin::Name);
+            QString name = pluginMgr->getPluginById(it->id)->name();
             this->setAttr(w, Widget::Name, name);
         }
     }

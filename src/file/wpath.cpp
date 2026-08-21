@@ -87,7 +87,7 @@ QString WPath::getModulePath(const QUuid &moduleId) const
     if (!plugin)
         return {};
 
-    return qvariant_cast<QString>(plugin->getMetaData(Plugin::Path));
+    return qvariant_cast<QString>(plugin->path());
 }
 
 QString WPath::getModuleFolder(const QUuid &moduleId) const
@@ -101,7 +101,7 @@ QString WPath::getModulePath(WPlugin *plugin) const
     if (!d->we || !plugin)
         return {};
 
-    return qvariant_cast<QString>(plugin->getMetaData(Plugin::Path));
+    return qvariant_cast<QString>(plugin->path());
 }
 
 QString WPath::getModuleFolder(WPlugin *plugin) const

@@ -29,6 +29,7 @@
 
 #include <QScopedPointer>
 #include <QString>
+#include <QStringList>
 #include <QUuid>
 #include <QVariant>
 
@@ -64,7 +65,7 @@ public:
     virtual ~WPlugin();
 
     WPluginManager *parent() const;
-    
+
     /**
    * @brief Reads plugin configuration from a file.
    * @param filePath The root path used to resolve relative plugin paths.
@@ -107,18 +108,6 @@ public:
     bool hasMetaData(const QString &key) const;
 
     /**
-   * @brief Returns the unique identifier assigned by the plugin manager.
-   * @return A QUuid, or a null UUID if the plugin has not been registered.
-   */
-    QUuid getLocalUuid() const;
-
-    /**
-   * @brief Returns the local UUID assigned to the plugin.
-   * @return A QUuid, or a null UUID if the plugin has not been registered.
-   */
-    QUuid getUuid() const;
-
-    /**
    * @brief Sets a metadata value.
    * @param key   The metadata key.
    * @param value The value to store.
@@ -136,31 +125,95 @@ public:
     WPluginInterface *inst();
 
     /**
-     * @brief Returns the plugin's metadata document.
-     * @return A WMetaDocument object.
-     */
+   * @brief Returns the plugin's metadata document.
+   * @return A WMetaDocument object.
+   */
     const WMetaDocument &getMetaDocument() const;
-    
+
     /**
-     * @brief Gets the current state of the plugin.
-     * @return The current plugin state.
-     */
+   * @brief Gets the current state of the plugin.
+   * @return The current plugin state.
+   */
     PluginState getState() const;
-    
+
     /**
-     * @brief Attempts to transition to a new state.
-     * @param newState The target state.
-     * @return true if transition was successful, false otherwise.
-     */
+   * @brief Attempts to transition to a new state.
+   * @param newState The target state.
+   * @return true if transition was successful, false otherwise.
+   */
     bool setState(PluginState newState);
+
+    // the plugin version string.
+    QString version() const;
+    void setVersion(const QString &version);
+
+    // the plugin display name.
+    QString name() const;
+    void setName(const QString &name);
+
+    // the initialization arguments
+    QString initArg() const;
+    void setInitArg(const QString &initArg);
+
+    // the absolute path to the plugin binary.
+    QString path() const;
+    void setPath(const QString &path);
+
+    // the relative path (as stored in configuration).
+    QString relativePath() const;
+    void setRelativePath(const QString &relativePath);
+
+    // the plugin build/creation date.
+    QString date() const;
+    void setDate(const QString &date);
+
+    // the plugin author.
+    QString author() const;
+    void setAuthor(const QString &author);
+
+    // the plugin description.
+    QString desc() const;
+    void setDesc(const QString &desc);
+
+    // the plugin type (e.g. "dll" or "exe").
+    QString type() const;
+    void setType(const QString &type);
+
+    // whether the plugin provides a main widget.
+    bool mainWidget() const;
+    void setMainWidget(bool mainWidget);
+
+    // whether the plugin should be auto‑started. */
+    bool autorun() const;
+    void setAutorun(bool autorun);
+
+    // whether the plugin requires administrator privileges.
+    bool admin() const;
+    void setAdmin(bool admin);
+
+    // list of plugin dependencies (by UUID or name).
+    QStringList depends() const;
+    void setDepends(const QStringList &depends);
+
+    // the list of dependency search paths.
+    QStringList dependsPath() const;
+    void setDependsPath(const QStringList &dependsPath);
+
+    // the local UUID (assigned by the manager).
+    QUuid localUuid() const;
+    void setLocalUuid(const QUuid &uuid);
+
+    // plugin's own UUID.
+    QUuid uuid() const;
+    void setUuid(const QUuid &uuid);
+
+    // path to the configuration file.
+    QString configPath() const;
+    void setConfigPath(const QString &configPath);
+
 private:
-    /// Helper: loads a shared library / DLL plugin.
     bool loadDll(const QString &dllPath);
-    /// Helper: loads an executable as a virtual plugin.
     bool loadExe(const QString &exePath);
-    
-    /// State machine for managing plugin lifecycle
-    WPluginStateMachine *m_stateMachine;
 
     QScopedPointer<WPluginPrivate> d_ptr;
     Q_DECLARE_PRIVATE(WPlugin)

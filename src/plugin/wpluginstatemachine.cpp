@@ -69,9 +69,6 @@ WPluginStateMachine::WPluginStateMachine(WPlugin *parent)
     : QObject(parent->parent())
     , m_currentState(PluginState::Unloaded)
     , m_parent(parent) {
-    qDebug() << "WPluginStateMachine::WPluginStateMachine: Creating state machine for plugin"
-             << parent->getMetaData(we::Consts::Plugin::Name).toString();
-    qDebug() << "WPluginStateMachine::WPluginStateMachine: Initial state:" << stateToString(m_currentState);
 }
 
 WPluginStateMachine::~WPluginStateMachine() {
@@ -84,13 +81,8 @@ PluginState WPluginStateMachine::currentState() const {
 
 bool WPluginStateMachine::transitionTo(PluginState newState) {
     if (m_currentState == newState) {
-        qDebug() << "WPluginStateMachine::transitionTo: Already in target state"
-                 << stateToString(m_currentState);
         return true;
     }
-
-    qDebug() << "WPluginStateMachine::transitionTo: Attempting transition from"
-             << stateToString(m_currentState) << "to" << stateToString(newState);
 
     // Validate state transition
     bool validTransition = false;

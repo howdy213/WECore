@@ -108,7 +108,7 @@ bool WVirtualPlugin::init(WMessage &msg) {
 
     if (!d->m_plugin) {
         qWarning()
-            << "WVirtualPlugin::init called without a plugin metadata object";
+        << "WVirtualPlugin::init called without a plugin metadata object";
         return false;
     }
 
@@ -121,7 +121,7 @@ bool WVirtualPlugin::init(WMessage &msg) {
     if (d->m_topics.isEmpty()) {
         // Listen on VirtualPlugin.<name>
         if (d->m_topics.isEmpty()) {
-            const QString name = d->m_plugin->getMetaData(Plugin::Name).toString();
+            const QString name = d->m_plugin->name();
             if (!name.isEmpty())
                 d->m_topics << QStringLiteral("VirtualPlugin.%1").arg(name);
         }
@@ -129,8 +129,7 @@ bool WVirtualPlugin::init(WMessage &msg) {
 
     subscribeTopics();
     d->m_admin = d->m_plugin->hasMetaData(Plugin::Admin);
-    const QString initArgs =
-        qvariant_cast<QString>(d->m_plugin->getMetaData(Plugin::Init));
+    const QString initArgs = d->m_plugin->initArg();
     if (!initArgs.isEmpty() && initArgs != QLatin1String("default")) {
         const QString op =
             d->m_admin ? QStringLiteral("runas") : QStringLiteral("open");

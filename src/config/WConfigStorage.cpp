@@ -49,6 +49,31 @@ static void collectLockedModified(WConfigViewer *viewer, QStringList &errors) {
     }
 }
 
+/// Overlay one nested map onto another, recursing into keys that are maps on both
+/// sides. Keys present only in `target` are kept, which is what makes a save merge
+/// instead of replacing the whole file.
+static void mergeNestedMap(QVariantMap &target, const QVariantMap &overlay) {
+    for (auto it = overlay.begin(); it != overlay.end(); ++it) {
+        if (it.value().typeId() == QMetaType::QVariantMap &&
+            target.value(it.key()).typeId() == QMetaType::QVariantMap) {
+            QVariantMap sub = target.value(it.key()).toMap();
+            mergeNestedMap(sub, it.value().toMap());
+            target[it.key()] = sub;
+        } else {
+            target[it.key()] = it.value();
+        }
+    }
+}
+
+/// Read an existing JSON object from disk; empty when the file is missing or invalid.
+static QVariantMap readJsonMap(const QString &filePath) {
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return QVariantMap();
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    return doc.isObject() ? doc.toVariant().toMap() : QVariantMap();
+}
+
 /// Serialize the file content as indented JSON and write it to disk.
 static bool writeJsonFile(const QVariant &variant, const QString &filePath) {
     QDir dir = QFileInfo(filePath).absoluteDir();
@@ -65,10 +90,13 @@ static bool writeJsonFile(const QVariant &variant, const QString &filePath) {
     return file.error() == QFileDevice::NoError;
 }
 
-/// Write the content to an Ini file, storing the whole config tree under the "config" key.
+/// Write the content to an Ini file, merging the tree under the "config" key so
+/// that keys owned by other writers of the same file are preserved.
 static bool writeIniFile(const QVariant &variant, const QString &filePath) {
     QSettings settings(filePath, QSettings::IniFormat);
-    settings.setValue("config", variant);
+    QVariantMap merged = settings.value("config").toMap();
+    mergeNestedMap(merged, variant.toMap());
+    settings.setValue("config", merged);
     settings.sync();
     return settings.status() == QSettings::NoError;
 }
@@ -185,17 +213,22 @@ bool WConfigFileStorage::save(WConfigDocument *document, QStringList &errors) {
     if (!errors.isEmpty())
         return false;
 
-    const QVariant variant = document->toVariant();
+    // Merge into the file on disk instead of replacing it: several sub-systems
+    // (this config, WMetaDocument, other tools) may share one config file, and a
+    // full overwrite would drop every key this document does not know about.
+    const QVariantMap docMap = document->toVariant().toMap();
     const QString suffix = QFileInfo(m_filePath).suffix().toLower();
     if (suffix == "json") {
-        if (!writeJsonFile(variant, m_filePath)) {
+        QVariantMap merged = readJsonMap(m_filePath);
+        mergeNestedMap(merged, docMap);
+        if (!writeJsonFile(merged, m_filePath)) {
             errors << tr("Failed to write config file: %1").arg(m_filePath);
             return false;
         }
         return true;
     }
     if (suffix == "ini") {
-        if (!writeIniFile(variant, m_filePath)) {
+        if (!writeIniFile(docMap, m_filePath)) {
             errors << tr("Failed to write config file: %1").arg(m_filePath);
             return false;
         }

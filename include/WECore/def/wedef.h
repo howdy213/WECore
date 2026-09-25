@@ -84,6 +84,7 @@ constexpr auto Scale = "Scale";             ///< string(x.x)
 constexpr auto Font = "Font";               ///< string(int)
 constexpr auto DefaultMain = "DefaultMain"; ///< string(path)
 constexpr auto Language = "Language";       ///< string(zh_CN|en_US)
+constexpr auto Style = "Style";             ///< map(StyleName|Theme|StyleFile|ThemeFile)
 } // namespace Config
 
 /// Plugin discovery / configuration keys.
@@ -145,7 +146,6 @@ constexpr auto ServiceRegistry =
 // Forward declarations of all framework classes
 
 class LightWidget;
-class LightSystem;
 class ShellRunnable;
 class WE;
 class WEBase;
@@ -156,8 +156,12 @@ struct WMessage;
 class WMetaDocument;
 class WPlugin;
 class WPath;
+class WPluginConfigManager;
+class WPluginConfigWidget;
 class WPluginManager;
 class WPluginProxy;
+class WPluginScanner;
+struct WPluginTreeNode;
 class WServiceRegistry;
 class WServiceProxy;
 class WShellExecute;

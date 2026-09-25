@@ -68,19 +68,25 @@ HEADERS += \
     include/WECore/config/WConfigViewer.h \
     include/WECore/config/WConfigWidget.h \
     include/WECore/def/wedef.h \
-    include/WECore/file/wpath.h           \
-    include/WECore/file/wshellexecute.h   \
+    include/WECore/utils/wpath.h \
+    include/WECore/utils/wshellexecute.h \
     include/WECore/metadata/wmetadata.h \
     include/WECore/metadata/wmetadocument.h \
     include/WECore/plugin/wplugin.h \
+    include/WECore/plugin/wpluginconfigmanager.h \
+    include/WECore/plugin/wpluginconfigwidget.h \
     include/WECore/plugin/wplugininterface.h \
     include/WECore/plugin/wpluginmanager.h \
     include/WECore/plugin/wpluginmessage.h \
     include/WECore/plugin/wpluginproxy.h \
+    include/WECore/plugin/wpluginscanner.h \
     include/WECore/plugin/wpluginstatemachine.h \
     include/WECore/plugin/wvirtualplugin.h \
     include/WECore/service/wserviceregistry.h \
     include/WECore/service/wserviceproxy.h \
+    include/WECore/style/wstyle.h \
+    include/WECore/style/wdefaultstyle.h \
+    include/WECore/style/wqssstyle.h \
     include/WECore/we/we.h \
     include/WECore/we/webase.h \
     include/WECore/we/webasedata.h \
@@ -121,14 +127,20 @@ SOURCES += \
     src/config/WConfigViewer.cpp \
     src/config/WConfigWidget.cpp \
     src/metadata/wmetadocument.cpp \
-    src/file/wpath.cpp \
-    src/file/wshellexecute.cpp \
+    src/utils/wpath.cpp \
+    src/utils/wshellexecute.cpp \
     src/plugin/wplugin.cpp \
+    src/plugin/wpluginconfigmanager.cpp \
+    src/plugin/wpluginconfigwidget.cpp \
     src/plugin/wpluginmanager.cpp \
     src/plugin/wpluginproxy.cpp \
+    src/plugin/wpluginscanner.cpp \
     src/plugin/wpluginstatemachine.cpp \
     src/plugin/wvirtualplugin.cpp \
     src/service/wserviceregistry.cpp \
+    src/style/wstyle.cpp \
+    src/style/wdefaultstyle.cpp \
+    src/style/wqssstyle.cpp \
     src/we/we.cpp \
     src/we/webase.cpp \
     src/we/webasedata.cpp \

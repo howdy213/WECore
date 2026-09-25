@@ -20,14 +20,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "WECore/file/wshellexecute.h"
+#include "WECore/utils/wshellexecute.h"
 
 #include <QThreadPool>
 
 #include <Windows.h>   // ShellExecuteW (via shellapi)
 #include <shellapi.h>
 
-#include "WECore/file/wpath.h"
+#include "WECore/utils/wpath.h"
 
 namespace we {
 

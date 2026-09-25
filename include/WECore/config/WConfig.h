@@ -23,7 +23,9 @@
 #include "WConfigDocument.h"
 #include "WConfigStorage.h"
 #include "WECore/def/wedef.h"
+#include <QList>
 #include <QObject>
+#include <QPointer>
 #include <QReadWriteLock>
 #include <QSettings>
 #include <memory>
@@ -49,7 +51,27 @@ public:
                     WConfigTemplate *configTemplate = nullptr);
     bool initialize(QSettings *settings,
                     WConfigTemplate *configTemplate = nullptr);
+    /// Build the in-memory tree from a template without configuring a storage
+    /// backend. Used by sub-configs, which are mounted into a host and share its
+    /// storage instead of owning one.
+    bool applyTemplate(WConfigTemplate *configTemplate);
     WConfigDocument *document() const { return m_document; }
+
+    // ---- Sub-config mounting ----
+    // A sub-config contributes its own tree to `path` inside this config's tree.
+    // An empty `path` merges the whole tree into the root of this config instead,
+    // which keeps a flat file layout (used when the entire file is described by a
+    // sub-config). Ownership of the sub stays with the caller; this config never
+    // deletes it.
+    // mountSubConfig() must be called BEFORE initialize(), so the host template
+    // only has to declare the mount point itself (see WConfigDocument::attachMount).
+    bool mountSubConfig(const QString &path, WConfig *sub);
+    bool unmountSubConfig(WConfig *sub);
+    QList<WConfig *> subConfigs() const;
+    /// Whether this config is currently mounted into another one.
+    bool isMounted() const { return !m_mountedIn.isNull(); }
+    /// The config this one is mounted into, or nullptr when standalone.
+    WConfig *mountedIn() const { return m_mountedIn.data(); }
 
     // Direct variants take no read/write lock, for callers that already hold
     // the lock or run single-threaded. Non-Direct variants acquire m_lock
@@ -69,8 +91,12 @@ public:
     bool setItemReadOnly(const QString &path, bool on);
     bool setItemRestartRequired(const QString &path, bool on);
 
-    // Root document lock: used for cross-thread config item access (recursive)
-    QReadWriteLock *lock() const { return &m_lock; }
+    // Root document lock: used for cross-thread config item access (recursive).
+    // A mounted sub-config shares its host's lock, so that locking the mount path
+    // and locking the sub directly go through the same lock.
+    QReadWriteLock *lock() const {
+        return m_mountedIn.isNull() ? &m_lock : m_mountedIn->lock();
+    }
     QSharedPointer<WConfigItemRef> createItemRef(const QString &path);
     QSharedPointer<WConfigDirRef> createDirRef(const QString &path);
 
@@ -82,17 +108,28 @@ public:
     bool hasRestartRequiredChanges() const;
     void setHasRestartRequiredChanges(bool value);
 
-    operator QReadWriteLock *() const { return &m_lock; }
+    operator QReadWriteLock *() const { return lock(); }
 signals:
     void configChanged(we::config::WConfigDataBase *data);
 
 private:
+    /// Invoked by the host after it wrote the whole tree: a mounted sub-config has
+    /// no write of its own, so it only clears its restart flag here.
+    void onHostSaved();
+
     /// Current storage backend (file or QSettings), chosen by initialize()
     std::unique_ptr<WConfigStorage> m_storage;
     WConfigDocument *m_document = nullptr;
     bool m_hasRestartRequiredChanges;
     QStringList m_lastSaveErrors;
     mutable QReadWriteLock m_lock;
+
+    /// Host this config is mounted into (null when standalone). Ownership of the
+    /// root is implied: a mounted config's root lives in the host tree, and the
+    /// host always detaches it before its own tree is destroyed.
+    QPointer<WConfig> m_mountedIn;
+    /// Sub-configs mounted into this host (not owned)
+    QList<QPointer<WConfig>> m_subConfigs;
 };
 
 } // namespace we::config

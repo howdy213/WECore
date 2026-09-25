@@ -4,23 +4,23 @@
 <context>
     <name>WConfigFileStorage</name>
     <message>
-        <location filename="../src/config/WConfigStorage.cpp" line="138"/>
+        <location filename="../src/config/WConfigStorage.cpp" line="166"/>
         <source>No config file</source>
         <translation>未配置文件路径</translation>
     </message>
     <message>
-        <location filename="../src/config/WConfigStorage.cpp" line="179"/>
+        <location filename="../src/config/WConfigStorage.cpp" line="207"/>
         <source>Invalid config file path</source>
         <translation>配置文件路径无效</translation>
     </message>
     <message>
-        <location filename="../src/config/WConfigStorage.cpp" line="192"/>
-        <location filename="../src/config/WConfigStorage.cpp" line="199"/>
+        <location filename="../src/config/WConfigStorage.cpp" line="225"/>
+        <location filename="../src/config/WConfigStorage.cpp" line="232"/>
         <source>Failed to write config file: %1</source>
         <translation>写入配置文件失败：%1</translation>
     </message>
     <message>
-        <location filename="../src/config/WConfigStorage.cpp" line="204"/>
+        <location filename="../src/config/WConfigStorage.cpp" line="237"/>
         <source>Unsupported config format: %1</source>
         <translation>不支持的配置格式：%1</translation>
     </message>
@@ -28,12 +28,12 @@
 <context>
     <name>WConfigSettingsStorage</name>
     <message>
-        <location filename="../src/config/WConfigStorage.cpp" line="233"/>
+        <location filename="../src/config/WConfigStorage.cpp" line="266"/>
         <source>Invalid QSettings storage</source>
         <translation>QSettings 存储无效</translation>
     </message>
     <message>
-        <location filename="../src/config/WConfigStorage.cpp" line="255"/>
+        <location filename="../src/config/WConfigStorage.cpp" line="288"/>
         <source>Failed to write to QSettings</source>
         <translation>写入 QSettings 失败</translation>
     </message>
@@ -51,7 +51,7 @@
         <translation>WMetaDocument::load: JSON 解析错误，偏移量</translation>
     </message>
     <message>
-        <location filename="../src/metadata/wmetadocument.cpp" line="83"/>
+        <location filename="../src/metadata/wmetadocument.cpp" line="99"/>
         <source>WMetaDocument::save: Failed to open file for writing:</source>
         <translation>WMetaDocument::save: 无法打开文件进行写入：</translation>
     </message>
@@ -82,6 +82,217 @@
         <location filename="../src/plugin/wplugin.cpp" line="240"/>
         <source>WPlugin::loadDll: Failed to load %1 - %2</source>
         <translation>WPlugin::loadDll: 加载 %1 失败 - %2</translation>
+    </message>
+</context>
+<context>
+    <name>we::WPluginConfigWidget</name>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="54"/>
+        <source>KeyName</source>
+        <translation>KeyName</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="54"/>
+        <source>Path</source>
+        <translation>Path</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="63"/>
+        <source>No configuration content.</source>
+        <translation>配置文件暂无内容</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="65"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="345"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="351"/>
+        <source>New Sub-directory</source>
+        <translation>新建子目录</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="66"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="390"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="396"/>
+        <source>New Leaf</source>
+        <translation>新建叶子</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="67"/>
+        <source>Delete Node</source>
+        <translation>删除节点</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="68"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="467"/>
+        <source>Edit Path</source>
+        <translation>修改 Path</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="69"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="322"/>
+        <source>Edit File</source>
+        <translation>编辑文件</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="70"/>
+        <source>Refresh</source>
+        <translation>刷新</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="71"/>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="114"/>
+        <source>Configuration File Error</source>
+        <translation>配置文件错误</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="115"/>
+        <source>Cannot load the root configuration file: %1
+Recreate it as an empty configuration?</source>
+        <translation>无法加载根配置文件：%1
+是否重建一个空的配置文件？</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="128"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="142"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="282"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="290"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="365"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="379"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="410"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="424"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="453"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="474"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="488"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="504"/>
+        <source>Error</source>
+        <translation>错误</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="129"/>
+        <source>Cannot create the root configuration file: %1</source>
+        <translation>无法创建根配置文件：%1</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="143"/>
+        <source>The root configuration file still cannot be loaded after recreating it. Check its permissions or content.</source>
+        <translation>重建后仍无法加载根配置文件，请检查文件权限或内容。</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="200"/>
+        <source>Root</source>
+        <translation>根配置</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="271"/>
+        <source>File Not Found</source>
+        <translation>文件不存在</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="272"/>
+        <source>File %1 does not exist. Create it?</source>
+        <translation>文件 %1 不存在，是否创建该文件？</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="283"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="366"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="411"/>
+        <source>Cannot create the file: %1</source>
+        <translation>无法创建文件：%1</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="291"/>
+        <source>Still cannot open the file after creating it: %1</source>
+        <translation>创建文件后仍无法打开：%1</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="305"/>
+        <source>Save</source>
+        <translation>保存</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="345"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="390"/>
+        <source>KeyName:</source>
+        <translation>KeyName:</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="351"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="396"/>
+        <source>Path (relative or absolute):</source>
+        <translation>Path（相对或绝对）：</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="380"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="425"/>
+        <source>Failed to add the node. The KeyName may already exist, or the parent configuration file is not writable.</source>
+        <translation>添加失败，可能 KeyName 已存在或父级配置文件无法写入。</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="433"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="460"/>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="482"/>
+        <source>Notice</source>
+        <translation>提示</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="434"/>
+        <source>Select a node to delete first.</source>
+        <translation>请先选择要删除的节点</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="440"/>
+        <source>Node &apos;%1&apos; is a container node; its child nodes will no longer be listed (the file itself is not deleted).
+Delete it?</source>
+        <translation>节点“%1”是容器节点，其所有子节点将不再显示（文件本身不会被删除）。
+确定删除吗？</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="444"/>
+        <source>Delete leaf node &apos;%1&apos;?</source>
+        <translation>确定删除叶子节点“%1”？</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="446"/>
+        <source>Confirm Deletion</source>
+        <translation>确认删除</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="453"/>
+        <source>Failed to delete.</source>
+        <translation>删除失败</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="461"/>
+        <source>Select a node to modify first.</source>
+        <translation>请先选择要修改的节点</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="467"/>
+        <source>Path:</source>
+        <translation>Path:</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="474"/>
+        <source>Failed to update the path.</source>
+        <translation>修改失败</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="483"/>
+        <source>Select a node to edit first.</source>
+        <translation>请先选择要编辑的节点</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="489"/>
+        <source>The node has no associated file path.</source>
+        <translation>节点没有关联文件路径</translation>
+    </message>
+    <message>
+        <location filename="../src/plugin/wpluginconfigwidget.cpp" line="505"/>
+        <source>Cannot write the file: %1</source>
+        <translation>无法写入文件：%1</translation>
     </message>
 </context>
 <context>
@@ -159,7 +370,7 @@
 <context>
     <name>we::config::WConfig</name>
     <message>
-        <location filename="../src/config/WConfig.cpp" line="143"/>
+        <location filename="../src/config/WConfig.cpp" line="236"/>
         <source>No storage backend is configured</source>
         <translation>未配置存储后端</translation>
     </message>
@@ -630,6 +841,71 @@ Value: %3</source>
 键： %1
 类型： %2
 值： %3</translation>
+    </message>
+</context>
+<context>
+    <name>we::style::WStyle</name>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="123"/>
+        <location filename="../src/style/wstyle.cpp" line="147"/>
+        <source>Style</source>
+        <translation>样式</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="124"/>
+        <source>Selects how the application is painted</source>
+        <translation>选择应用的整体渲染方式</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="129"/>
+        <source>Theme</source>
+        <translation>主题</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="130"/>
+        <source>Light or dark appearance; styles without themes ignore this</source>
+        <translation>浅色或深色外观；不支持主题的样式会忽略此项</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="138"/>
+        <source>Style file</source>
+        <translation>样式文件</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="139"/>
+        <source>Style sheet replacing the built-in theme</source>
+        <translation>替换内置主题的样式表</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="144"/>
+        <source>Theme file</source>
+        <translation>主题文件</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="145"/>
+        <source>Style sheet loaded after the built-in theme</source>
+        <translation>在内置主题之后加载的样式表</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="147"/>
+        <source>Application appearance</source>
+        <translation>应用外观</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="189"/>
+        <source>Select Style File</source>
+        <translation>选择样式文件</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="190"/>
+        <location filename="../src/style/wstyle.cpp" line="201"/>
+        <source>Qt Style Sheets (*.qss);;All Files (*)</source>
+        <translation>Qt 样式表 (*.qss);;所有文件 (*)</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="200"/>
+        <source>Select Theme File</source>
+        <translation>选择主题文件</translation>
     </message>
 </context>
 </TS>

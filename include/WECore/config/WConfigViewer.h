@@ -82,6 +82,13 @@ public:
     ~WConfigViewer();
 
     QString name() const { return m_name; }
+    /// Rename this directory. Only used when a sub-config is mounted: its own root
+    /// is unnamed and must take the name of the mount point in the host tree.
+    void setName(const QString &name) { m_name = name; }
+    /// Reparent this directory. Only used for mounted sub-config roots: their own
+    /// root starts orphaned and must point at the host directory they live in,
+    /// otherwise fullPath(), policy and lock lookup would not see the host tree.
+    void setParent(WConfigViewer *parent) { m_parent = parent; }
     QString fullPath() const;
     WConfigViewer *parent() const { return m_parent; }
 

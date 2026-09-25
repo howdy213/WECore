@@ -31,7 +31,7 @@
 #include <QPluginLoader>
 #include <QRandomGenerator>
 
-#include "WECore/file/wpath.h"
+#include "WECore/utils/wpath.h"
 #include "WECore/metadata/wmetadocument.h"
 #include "WECore/plugin/wplugininterface.h"
 #include "WECore/plugin/wpluginmanager.h"

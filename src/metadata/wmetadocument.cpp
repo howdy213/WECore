@@ -76,7 +76,23 @@ bool WMetaDocument::load(const QString &source, bool isPath)
 
 bool WMetaDocument::save(const QString &filePath) const
 {
-    QJsonObject root = mapToJson(toMap());
+    // Merge into the existing file: other writers (e.g. WConfig) may share this
+    // file, so only the keys owned by this document are replaced.
+    QJsonObject root;
+    QFile existingFile(filePath);
+    if (existingFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QJsonDocument existing =
+            QJsonDocument::fromJson(existingFile.readAll());
+        if (existing.isObject())
+            root = existing.object();
+        existingFile.close();
+    }
+
+    const QJsonObject own = mapToJson(toMap());
+    for (auto it = own.begin(); it != own.end(); ++it) {
+        root[it.key()] = it.value();
+    }
+
     QJsonDocument doc(root);
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {

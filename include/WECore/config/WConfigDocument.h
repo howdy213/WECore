@@ -22,7 +22,9 @@
 
 #include "WConfigTemplate.h"
 #include "WConfigViewer.h"
+#include <QList>
 #include <QObject>
+#include <QPair>
 #include <QString>
 #include <QVariant>
 
@@ -66,7 +68,34 @@ public:
     /// Controls whether items not declared in the template may be created during load; defaults to false.
     void setAllowCreateOnLoad(bool allow) { m_allowCreateOnLoad = allow; }
 
+    // ---- Mounted sub-configs ----
+    // A mounted sub-config contributes its own subtree to this document. The
+    // subtree is NOT owned by this document: detachMount() must be called (or the
+    // document destroyed) to hand the nodes back to their owner, and clearViewer()
+    // never deletes a node a mount contributed.
+    //
+    // With a non-empty `path` the sub-config's own root takes the name of the
+    // mount point and is inserted there. With an empty `path` the whole content of
+    // the sub-config is merged into this document's root instead, so a flat file
+    // layout is kept (the sub-config's directories and items become direct members
+    // of the root).
+    bool attachMount(const QString &path, WConfigViewer *root);
+    bool detachMount(WConfigViewer *root);
+    bool isMountRoot(WConfigViewer *viewer) const;
+    int mountCount() const { return m_mounts.size() + m_rootMounts.size(); }
+
 private:
+    /// Content a sub-config merged into the root: the nodes themselves plus the
+    /// sub-config root they have to be handed back to.
+    struct RootMount {
+        WConfigViewer *root = nullptr;
+        QList<WConfigViewer *> viewers;
+        QList<WConfigDataBase *> data;
+    };
+
+    bool attachRootMount(WConfigViewer *root);
+    bool isContributedByRootMount(WConfigDataBase *data) const;
+
     void loadFromVariant(WConfigViewer *viewer, const QVariant &variant);
     QVariant saveToVariant(WConfigViewer *viewer) const;
 
@@ -74,6 +103,10 @@ private:
     bool m_allowCreateOnLoad = false;
     WConfigViewer *m_root;
     WConfigTemplate *m_template;
+    /// { mount path, mounted root viewer } — roots are owned by another document
+    QList<QPair<QString, WConfigViewer *>> m_mounts;
+    /// Sub-configs merged into m_root, see attachMount()
+    QList<RootMount> m_rootMounts;
 };
 
 } // namespace we::config

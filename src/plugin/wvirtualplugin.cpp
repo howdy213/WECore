@@ -24,7 +24,7 @@
  */
 #include "WECore/plugin/wvirtualplugin.h"
 
-#include "WECore/file/wshellexecute.h"
+#include "WECore/utils/wshellexecute.h"
 #include "WECore/plugin/wplugin.h"
 #include "WECore/plugin/wplugindata.h"
 #include "WECore/we/we.h"

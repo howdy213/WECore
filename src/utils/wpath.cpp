@@ -20,7 +20,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "WECore/file/wpath.h"
+#include "WECore/utils/wpath.h"
 
 #include <QDir>
 #include <QFileInfo>

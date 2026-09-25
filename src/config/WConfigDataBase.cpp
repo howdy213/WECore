@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -39,6 +39,14 @@ bool WConfigDataBase::modified() const { return getTemporary() != getPersistent(
 
 bool WConfigDataBase::hasProperty(Property prop) const {
     return m_info.properties().contains(prop);
+}
+
+void WConfigDataBase::setPropertyRuntime(Property prop, bool on) {
+    if (on)
+        m_info.addProperty(prop);
+    else
+        m_info.removeProperty(prop);
+    notifyChange();
 }
 
 void WConfigDataBase::addObserver(WConfigItemRef *observer) {

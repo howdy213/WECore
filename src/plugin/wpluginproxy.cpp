@@ -1,9 +1,9 @@
 /**
- * @file wvirtualplugin.cpp
- * @brief Plugin proxy layer, not used
+ * @file wpluginproxy.cpp
+ * @brief Implementation of the unused WPluginProxy placeholder.
  * @author howdy213
- * @date 2026-1-30
- * @version 1.1.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -20,9 +20,7 @@
  * limitations under the License.
  */
 #include "WECore/plugin/wpluginproxy.h"
+
 namespace we {
-/**
- * @brief WPluginProxy::WPluginProxy
- */
 WPluginProxy::WPluginProxy() {}
 } // namespace we

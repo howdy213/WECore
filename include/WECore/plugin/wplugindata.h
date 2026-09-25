@@ -1,10 +1,11 @@
 /**
  * @file wplugindata.h
- * @brief 插件数据类
+ * @brief Process-wide holder for the current WEBase / WPlugin / WWidget.
+ * @details The layout must not change and the class must not be exported.
+ *
  * @author howdy213
- * @date 2026-1-30
- * @version 1.1.0
- * @details 该数据结构不应更改，且不应导出
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -27,21 +28,29 @@
 #define PClass PData->getWEClass()
 #define PPlugin PluginData::getPlugin()
 
- namespace we {
-    class PluginDataPrivate;
-    class PluginData {
-    public:
-        PluginData();
-        virtual ~PluginData();
-        static void setData(WEBase *data);
-        static WEBase *getData();
-        static void setPlugin(WPlugin *plugin);
-        static WPlugin *getPlugin();
-        static void setWidget(WWidget *widget);
-        static WWidget *getWidget();
+namespace we {
+class PluginDataPrivate;
 
-    private:
-        static PluginDataPrivate *d;
-    };
-}
+/**
+ * @brief Static accessors exposing the current plugin context.
+ *
+ * All state lives in one file-static PluginDataPrivate that is allocated
+ * lazily on first access and released only at process exit. Not exported and
+ * not meant to be instantiated.
+ */
+class PluginData {
+public:
+    PluginData();
+    virtual ~PluginData();
+    static void setData(WEBase *data);
+    static WEBase *getData();
+    static void setPlugin(WPlugin *plugin);
+    static WPlugin *getPlugin();
+    static void setWidget(WWidget *widget);
+    static WWidget *getWidget();
+
+private:
+    static PluginDataPrivate *d;
+};
+} // namespace we
 #endif // WPLUGINDATA_H

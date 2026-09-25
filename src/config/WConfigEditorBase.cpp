@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -25,9 +25,11 @@ namespace we::config {
 WConfigEditorBase::WConfigEditorBase(WConfigItemWidget* parent) : QWidget(parent) {}
 
 void WConfigEditorBase::setConfigValue(QVariant value) { if (m_data) m_data->setTemporary(value); }
+// Bind only when the incoming data matches this editor's expected type.
 void WConfigEditorBase::setConfigData(WConfigDataBase* data) { if (data && data->type() == m_type) m_data = data; }
 WConfigDataBase* WConfigEditorBase::configData() { return m_data; }
 void WConfigEditorBase::createEditor() {}
+void WConfigEditorBase::refreshFromData() {}
 
 QWidget *NoEditColumnDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const {
     if (index.column() == 0)

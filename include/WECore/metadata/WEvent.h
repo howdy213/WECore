@@ -6,8 +6,8 @@
  * correlation ID) used by WWidgetManager and other event‑driven components.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -37,10 +37,9 @@ namespace we {
 /**
  * @brief An event transmitted over the event bus.
  *
- * Events have a mandatory `topic`, an optional `msg` payload, a `sender`
- * identifier, and a `timestamp` that is automatically set to the current
- * time when the event is created. An optional `correlationId` can be used
- * to match request/reply pairs.
+ * `topic` is mandatory and selects the subscribers, `msg` carries the
+ * optional payload, `timestamp` is stamped automatically at construction,
+ * and `correlationId` links a reply event back to its originating request.
  */
 struct WEvent {
     QString topic;         ///< Event topic (e.g., "user.login").
@@ -52,30 +51,13 @@ struct WEvent {
     /// Default constructor – timestamp is set to now.
     WEvent() : timestamp(QDateTime::currentMSecsSinceEpoch()) {}
 
-    /**
-   * @brief Constructs an event with a topic, optional message, and sender.
-   * @param t  The event topic.
-   * @param m  The message payload (default: empty).
-   * @param s  The sender identifier (default: empty).
-   */
+    /// Constructs an event with a topic, optional message, and sender.
     explicit WEvent(const QString &t, const WMessage &m = {},
                     const QString &s = {})
         : topic(t), msg(m), sender(s),
         timestamp(QDateTime::currentMSecsSinceEpoch()) {}
 
-    /**
-   * @brief Convenience accessor for a typed value from the message map.
-   * @param key  The map key.
-   * @return The value cast to type @p T, or a default‑constructed @p T if
-   *         the key is missing or casting fails.
-   *
-   * Example:
-   * @code
-   * WEvent event("update");
-   * event.msg.map["count"] = 42;
-   * int count = event.dataValue<int>("count");
-   * @endcode
-   */
+    /// Returns msg.map[key] cast to T, or a default‑constructed T if it is missing or incompatible.
     template <typename T> T dataValue(const QString &key) const {
         return qvariant_cast<T>(msg.map.value(key));
     }

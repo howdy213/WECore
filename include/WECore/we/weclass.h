@@ -2,8 +2,8 @@
  * @file weclass.h
  * @brief Header file for the WE class manager, declaring interfaces for accessing various managers.
  * @author howdy213
- * @date 2026-05-04
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * @copyright Copyright 2025-2026 howdy213
  *
@@ -21,13 +21,17 @@
  */
 #ifndef WECLASS_H
 #define WECLASS_H
-#include "WECore/Def/wedef.h"
+#include "WECore/def/wedef.h"
 
 namespace we {
 class WEClassPrivate;
 /**
  * @class WEClass
- * @brief Manages and provides access to the core managers of the WE system.
+ * @brief Factory that exposes the core managers of the WE system.
+ *
+ * The managers themselves are owned by the associated WEBase (stored in its
+ * WEBaseData container under well-known keys); WEClass only retrieves them.
+ * The returned pointers are borrowed, not owned.
  */
 class WE_EXPORT WEClass {
 public:

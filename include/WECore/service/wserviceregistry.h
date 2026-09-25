@@ -1,6 +1,6 @@
 /**
  * @file wserviceregistry.h
- * @brief Service registry for name‑to‑topic resolution and provider tracking.
+ * @brief Service registry for name-to-topic resolution and provider tracking.
  *
  * WServiceRegistry maintains a map of service names to request topics and
  * provider objects. It emits signals when services are registered or
@@ -8,8 +8,8 @@
  * destroyed.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -37,7 +37,7 @@
 
 namespace we {
 
-class WServiceRegistryPrivate;  ///< Forward declaration of private data.
+class WServiceRegistryPrivate;
 
 /**
  * @brief Maintains a registry of services and their request topics.
@@ -45,6 +45,8 @@ class WServiceRegistryPrivate;  ///< Forward declaration of private data.
  * Services are identified by a unique name. Each service has an associated
  * request topic (used by the event bus) and a provider QObject. When the
  * provider is destroyed, the service is automatically unregistered.
+ *
+ * Not thread-safe: use the registry from the thread that owns it.
  */
 class WE_EXPORT WServiceRegistry : public QObject
 {
@@ -52,60 +54,38 @@ class WE_EXPORT WServiceRegistry : public QObject
     Q_DISABLE_COPY(WServiceRegistry)
 
 public:
-    /**
-     * @brief Constructs a service registry.
-     * @param parent  Optional parent QObject.
-     */
     explicit WServiceRegistry(QObject *parent = nullptr);
-
-    /// Destroys the registry. Private data is automatically freed.
     ~WServiceRegistry() override;
 
     /**
      * @brief Registers a service.
-     * @param serviceName   Unique service name.
-     * @param requestTopic  Event bus topic used to invoke the service.
-     * @param provider      QObject that provides the service.
      *
-     * If a service with the same name already exists, it is replaced.
-     * The registry will automatically unregister the service if the
-     * provider is destroyed.
+     * A service with the same name is replaced. The registry watches the
+     * provider and unregisters the service when the provider is destroyed.
+     * Registration is ignored if the name or topic is empty, or if the
+     * provider is null.
      */
     void registerService(const QString &serviceName,
                          const QString &requestTopic,
                          QObject *provider);
 
-    /**
-     * @brief Unregisters a service by name.
-     * @param serviceName  Name of the service to remove.
-     */
+    /// Removes a service. No-op if @p serviceName is not registered.
     void unregisterService(const QString &serviceName);
 
-    /**
-     * @brief Checks whether a service is registered.
-     * @param serviceName  The service name.
-     * @return @c true if the service exists.
-     */
+    /// Returns @c true if a service with @p serviceName is registered.
     bool hasService(const QString &serviceName) const;
 
-    /**
-     * @brief Returns the request topic associated with a service.
-     * @param serviceName  The service name.
-     * @return The topic string, or an empty string if the service is not found.
-     */
+    /// Returns the request topic of @p serviceName, or an empty string if unknown.
     QString requestTopic(const QString &serviceName) const;
 
-    /**
-     * @brief Lists all currently registered service names.
-     * @return A list of service names.
-     */
+    /// Returns the names of all currently registered services.
     QStringList listServices() const;
 
 signals:
     /// Emitted after a service has been successfully registered.
     void serviceRegistered(const QString &serviceName);
 
-    /// Emitted when a service is unregistered (explicitly or due to provider destruction).
+    /// Emitted when a service is unregistered, explicitly or via provider destruction.
     void serviceUnregistered(const QString &serviceName);
 
 private:

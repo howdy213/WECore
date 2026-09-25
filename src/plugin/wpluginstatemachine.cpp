@@ -2,12 +2,9 @@
  * @file wpluginstatemachine.cpp
  * @brief Implementation of WPluginStateMachine (synchronous version).
  *
- * Contains the implementation of the plugin state machine for managing
- * plugin lifecycle states.
- *
  * @author howdy213
- * @date 2026-08-19
- * @version 1.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -33,23 +30,24 @@
 
 namespace we {
 
-// Static utility functions
+// Names returned here are shown to the user, so they are translatable. Note
+// that stringToState() still matches the raw English names.
 QString WPluginStateMachine::stateToString(PluginState state) {
     switch (state) {
     case PluginState::Unloaded:
-        return "Unloaded";
+        return tr("Unloaded");
     case PluginState::Loading:
-        return "Loading";
+        return tr("Loading");
     case PluginState::Loaded:
-        return "Loaded";
+        return tr("Loaded");
     case PluginState::Unloading:
-        return "Unloading";
+        return tr("Unloading");
     case PluginState::Error:
-        return "Error";
+        return tr("Error");
     case PluginState::Disabled:
-        return "Disabled";
+        return tr("Disabled");
     default:
-        return "Unknown";
+        return tr("Unknown");
     }
 }
 
@@ -64,16 +62,13 @@ PluginState WPluginStateMachine::stringToState(const QString &stateStr) {
     return PluginState::Unloaded;
 }
 
-// WPluginStateMachine implementation
 WPluginStateMachine::WPluginStateMachine(WPlugin *parent)
-    : QObject(parent->parent())
+    : QObject(parent ? parent->parent() : nullptr)
     , m_currentState(PluginState::Unloaded)
     , m_parent(parent) {
 }
 
-WPluginStateMachine::~WPluginStateMachine() {
-    // Nothing to clean up
-}
+WPluginStateMachine::~WPluginStateMachine() {}
 
 PluginState WPluginStateMachine::currentState() const {
     return m_currentState;
@@ -84,7 +79,8 @@ bool WPluginStateMachine::transitionTo(PluginState newState) {
         return true;
     }
 
-    // Validate state transition
+    // Only the transitions listed below are permitted; anything else is
+    // rejected without touching the current state.
     bool validTransition = false;
     switch (m_currentState) {
     case PluginState::Unloaded:
@@ -113,7 +109,7 @@ bool WPluginStateMachine::transitionTo(PluginState newState) {
     }
 
     if (!validTransition) {
-        QString errorMsg = QString("Invalid transition from %1 to %2")
+        QString errorMsg = tr("Invalid transition from %1 to %2")
                                .arg(stateToString(m_currentState), stateToString(newState));
         qWarning() << "WPluginStateMachine::transitionTo:" << errorMsg;
         emit errorOccurred(errorMsg, m_currentState);

@@ -4,11 +4,11 @@
  *
  * WServiceProxy provides a convenient interface for calling services
  * registered in a WServiceRegistry via an event bus (WWidgetManager).
- * It supports both future‑based and callback‑based invocation patterns.
+ * It supports both future-based and callback-based invocation patterns.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -46,52 +46,45 @@ class WServiceProxyPrivate;
 /**
  * @brief An asynchronous proxy for invoking services through an event bus.
  *
- * The proxy uses WServiceRegistry to resolve a service name to a request
- * topic, then delegates the actual call to WWidgetManager::request().
- * Results are returned either as a QFuture<QVariant> or via a callback.
+ * The proxy resolves a service name to a request topic via WServiceRegistry
+ * and delegates the actual call to WWidgetManager::request(). Results are
+ * delivered as a QFuture<QVariant> or through a callback.
+ *
+ * The bus and registry are borrowed: they must outlive the proxy, which
+ * does not take ownership of either. The proxy itself is not a QObject.
  */
 class WE_EXPORT WServiceProxy
 {
     Q_DISABLE_COPY(WServiceProxy)
 
 public:
-    /**
-     * @brief Constructs a service proxy.
-     * @param bus       The event bus used for communication.
-     * @param registry  The service registry for name → topic resolution.
-     */
     WServiceProxy(WWidgetManager *bus, WServiceRegistry *registry);
 
-    /// Destroys the proxy. Private data is automatically freed.
     ~WServiceProxy();
 
     /**
-     * @brief Asynchronously calls a service, returning a future.
-     * @param serviceName  Name of the service to invoke.
-     * @param data         Payload to send (default empty).
-     * @param timeoutMs    Timeout in milliseconds (default 5000).
-     * @return A QFuture that will eventually contain the result or an exception.
+     * @brief Calls a service asynchronously.
+     *
+     * The returned future is fulfilled with the reply, or holds an exception
+     * if the service is unknown, the bus fails, or @p timeoutMs elapses.
      */
     QFuture<QVariant> call(const QString &serviceName,
                            const QVariant &data = {},
                            int timeoutMs = 5000);
 
     /**
-     * @brief Calls a service with a callback.
-     * @param serviceName  Name of the service.
-     * @param data         Payload.
-     * @param callback     Function with signature `void(bool ok, QVariant result)`.
-     * @param timeoutMs    Timeout in milliseconds (default 5000).
+     * @brief Calls a service and delivers the outcome to @p callback.
      *
-     * The callback is always invoked (even on error), with @p ok
-     * indicating success.
+     * @p callback has the signature `void(bool ok, QVariant result)`. It is
+     * always invoked (also on failure), with @p ok reporting success; on
+     * failure @p result carries the error text.
      */
     template <typename Func>
     void call(const QString &serviceName, const QVariant &data,
               Func callback, int timeoutMs = 5000);
 
 private:
-    QScopedPointer<WServiceProxyPrivate> d_ptr;  ///< Private data object.
+    QScopedPointer<WServiceProxyPrivate> d_ptr;
 };
 
 // --------------------------------------------------------------------------

@@ -1,7 +1,10 @@
 /**
+ * @file flowlayout.cpp
+ * @brief Implementation of FlowLayout.
+ *
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -51,6 +54,8 @@ Qt::Orientations FlowLayout::expandingDirections() const {
 }
 
 bool FlowLayout::hasHeightForWidth() const { return true; }
+
+// Measuring pass: testOnly == true computes the height without moving any item.
 int FlowLayout::heightForWidth(int width) const {
     return doLayout(QRect(0, 0, width, 0), true);
 }

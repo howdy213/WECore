@@ -2,18 +2,16 @@
  * @file we.h
  * @brief Global singleton providing access to the application base instance.
  *
- * The WE class holds a static pointer to a WEBase instance and offers
- * static methods to initialise and retrieve it. It is a pure static
- * class and cannot be instantiated.
+ * WE holds a static pointer to a WEBase instance and exposes static methods
+ * to install and retrieve it. It is a pure static class and cannot be
+ * instantiated.
  *
- * @note This header is considered **ABI‑stable** and will **never** be
- *       modified in a way that breaks binary compatibility. Do not
- *       add, remove, or reorder virtual functions, members, or change
- *       the class layout.
+ * @note This header is **ABI-stable**: do not add, remove, or reorder data
+ *       members or virtual functions, or otherwise change the class layout.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -34,15 +32,15 @@
 
 #include <QObject>
 
-#include "WECore/Def/wedef.h"
+#include "WECore/def/wedef.h"
 
 namespace we {
 
 /**
- * @brief Global static holder for the application’s WEBase instance.
+ * @brief Global holder for the application's single WEBase instance.
  *
- * Use WE::init() once at startup to set the global instance; afterwards
- * any code can call WE::inst() to obtain it.
+ * Call init() once at startup to install the instance; afterwards any code
+ * can call inst() to obtain it.
  */
 class WE_EXPORT WE
 {
@@ -50,17 +48,15 @@ class WE_EXPORT WE
 
 public:
     /**
-     * @brief Initialises the global WEBase instance.
-     * @param base Pointer to the fully constructed WEBase singleton.
+     * @brief Installs @p base as the global instance.
      *
-     * Must be called exactly once before any calls to inst().
+     * Must be called exactly once, before any call to inst().
+     * @return @c true on success; @c false if @p base is null or an
+     *         instance has already been installed.
      */
     static bool init(WEBase *base);
 
-    /**
-     * @brief Returns the global WEBase instance.
-     * @return Pointer to the WEBase, or @c nullptr if not yet initialised.
-     */
+    /// Returns the global instance, or @c nullptr before init() succeeds.
     static WEBase *inst();
 
 private:

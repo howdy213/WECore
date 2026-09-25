@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -26,7 +26,6 @@
 
 namespace we::config {
 
-// 前向声明
 class WConfig;
 class WConfigDataArray;
 class WConfigDataAction;
@@ -37,6 +36,7 @@ class WConfigDataString;
 class WConfigDataBool;
 class WConfigDataSelect;
 class WConfigDataObject;
+class WConfigDataCustom;
 class WConfigViewer;
 class WConfigTemplate;
 class WConfigDocument;
@@ -51,6 +51,7 @@ class WConfigEditorBool;
 class WConfigEditorSelect;
 class WConfigEditorObject;
 class WConfigEditorAction;
+class WConfigEditorCustom;
 class NoEditColumnDelegate;
 class WConfigItemRef;
 class WConfigDirRef;
@@ -65,7 +66,8 @@ enum class DataType {
     Array,
     Object,
     Select,
-    Action
+    Action,
+    Custom // user-defined data type (used with WConfigCustomTypeRegistry)
 };
 
 enum class Property {
@@ -76,18 +78,26 @@ enum class Property {
 using Properties = QVector<Property>;
 
 enum class DeletionPolicy {
-    AllowAll,              // 允许删除任何项（包括模板项）
-    AllowNonTemplateOnly,  // 只允许删除非模板项（动态添加的）
-    DisallowAll            // 禁止删除任何项
+    AllowAll,              // any item may be removed (template items included)
+    AllowNonTemplateOnly,  // only non-template (dynamically added) items may be removed
+    DisallowAll            // no item may be removed
 };
 QVariant defaultVariantForType(DataType type);
 QVariant convertVariantToType(const QVariant& value, DataType targetType);
 DataType inferDataTypeFromVariant(const QVariant& value);
-WConfigDataBase* createDataByType(DataType type, const QString& key,
-                                  const QVariant& defaultValue,
-                                  const WConfigItemInfo& info,
-                                  WConfigViewer* parent = nullptr);
-WConfigDataBase* createDataFromVariant(const QString& key, const QVariant& value, WConfigViewer* parent = nullptr);
+/// Creates a data item of the given type; returns nullptr for an unsupported type.
+/// For Array, the element type is inferred from defaultValue when not set in info.
+WE_EXPORT WConfigDataBase* createDataByType(DataType type, const QString& key,
+                                            const QVariant& defaultValue,
+                                            const WConfigItemInfo& info,
+                                            WConfigViewer* parent = nullptr);
+/// Creates an item whose type is inferred from value; returns nullptr for an unsupported value.
+WE_EXPORT WConfigDataBase* createDataFromVariant(const QString& key, const QVariant& value, WConfigViewer* parent = nullptr);
+/// Creates a custom-type item; returns nullptr if typeName is empty or not registered.
+WE_EXPORT WConfigDataBase* createCustomData(const QString& key, const QString& typeName,
+                                            const QVariant& defaultValue,
+                                            const WConfigItemInfo& info,
+                                            WConfigViewer* parent = nullptr);
 } // namespace we::config
 
 #endif // WCONFIGDEF_H

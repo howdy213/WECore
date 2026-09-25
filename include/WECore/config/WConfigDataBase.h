@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -52,7 +52,8 @@ public:
     void setIsFromTemplate(bool from) { m_isFromTemplate = from; }
 
     virtual QVariant getTemporary() const = 0;
-    // 若设置值与原值不同返回true
+    // Returns true if the set value differs from the previous value
+    // None of the functions below check isEffectivelyLocked internally, so that WConfigWidget saves do not fail
     virtual bool setTemporary(const QVariant &value) = 0;
     virtual QVariant getPersistent() const = 0;
     virtual bool setPersistent(const QVariant &val, bool emitSignal = true) = 0;
@@ -71,6 +72,8 @@ public:
     virtual bool fromVariant(const QVariant &variant) = 0;
 
     bool hasProperty(Property prop) const;
+    // Dynamically set/clear a property at runtime (writes to info and notifies observers / configChanged)
+    void setPropertyRuntime(Property prop, bool on);
 
 public:
     using ChangeCallback = std::function<void(WConfigDataBase *)>;

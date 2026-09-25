@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -27,6 +27,8 @@
 
 namespace we::config {
 
+// Editor for Object items: a key/value tree with add / remove buttons, honoring
+// the object's edit mode and the global nesting depth limit.
 class WE_EXPORT WConfigEditorObject : public WConfigEditorBase {
     Q_OBJECT
 public:
@@ -54,7 +56,7 @@ private:
     QPushButton *m_addButton = nullptr;
     QPushButton *m_removeButton = nullptr;
     WConfigDataObject *m_objData = nullptr;
-    QTreeWidgetItem *m_selectedItem = nullptr; // 当前选中的项
+    QTreeWidgetItem *m_selectedItem = nullptr;
 };
 
 } // namespace we::config

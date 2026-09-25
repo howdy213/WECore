@@ -1,7 +1,10 @@
 /**
+ * @file sidebar.h
+ * @brief Vertical navigation bar that drives a QStackedWidget.
+ *
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -27,14 +30,28 @@
 #include <QVector>
 #include <QWidget>
 
+/**
+ * @brief A fixed-width strip of exclusive tool buttons, one per page, used to
+ *        switch the current page of a connected QStackedWidget.
+ *
+ * Typical use: construct the bar, call setBtnCount() once, bind the stacked
+ * widget with connectStack(), then label each button with setButtonContent().
+ */
 class SideBar : public QWidget {
     Q_OBJECT
 
 public:
     explicit SideBar(QWidget *parent = nullptr);
+
+    /// Rebuilds the bar with @p count exclusive buttons and checks button 0; meant to be called once.
     void setBtnCount(unsigned int count);
+
+    /// Sets the label of button @p index.
     void setButtonContent(unsigned int index, QString content);
+
+    /// Binds the stacked widget whose page is switched when a button is clicked.
     void connectStack(QStackedWidget *stackedWidget);
+
     ~SideBar();
 private slots:
     void onButtonClicked();

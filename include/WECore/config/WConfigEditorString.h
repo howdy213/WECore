@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -26,6 +26,7 @@
 
 namespace we::config {
 
+// Editor for String items: a single-line edit bound to the temporary value.
 class WE_EXPORT WConfigEditorString : public WConfigEditorBase
 {
 public:
@@ -34,6 +35,7 @@ public:
     void setConfigData(WConfigDataBase* data) override;
     WConfigDataString* getData();
     WConfigDataBase* configData() override;
+    void refreshFromData() override;
 
 private:
     QLineEdit* m_stringEdit = nullptr;

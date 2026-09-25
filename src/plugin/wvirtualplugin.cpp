@@ -5,8 +5,8 @@
  * Contains the private data class and all method definitions.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -40,30 +40,23 @@ using namespace we::Consts;
 namespace we {
 
 /**
- * @brief Private data for WVirtualPlugin (d‑pointer pattern).
+ * @brief Private state of WVirtualPlugin (d-pointer pattern).
  *
- * Stores all internal state: the executable file path, the associated
- * WPlugin metadata object, admin flag, topic list, and the pointer
- * to the global event bus.
+ * m_bus points to the shared event bus and is borrowed, never deleted here.
  */
 class WVirtualPluginPrivate {
 public:
-    QString m_filePath;          ///< Path to the executable.
-    WPlugin *m_plugin = nullptr; ///< Associated metadata plugin.
-    bool m_admin = false;        ///< Whether admin rights should be used.
-    QStringList m_topics;        ///< Subscribed event topics.
-    WWidgetManager *m_bus =
-        nullptr; ///< Pointer to the event bus (widget manager).
+    QString m_filePath;              ///< Program to launch.
+    WPlugin *m_plugin = nullptr;     ///< Metadata provider; borrowed.
+    bool m_admin = false;            ///< Launch elevated when true.
+    QStringList m_topics;            ///< Topics to subscribe to.
+    WWidgetManager *m_bus = nullptr; ///< Borrowed event bus.
 };
 
-// Construction / Destruction
-
-/// Constructs the virtual plugin with an empty private data object.
 WVirtualPlugin::WVirtualPlugin(QObject *parent)
     : QObject(parent), d_ptr(new WVirtualPluginPrivate) {}
 
-/// Destructor: unsubscribes from all events, then the private data is
-/// automatically deleted.
+// Release the bus subscription; d_ptr then frees the private data.
 WVirtualPlugin::~WVirtualPlugin() {
     Q_D(WVirtualPlugin);
     if (d->m_bus) {
@@ -71,8 +64,6 @@ WVirtualPlugin::~WVirtualPlugin() {
         d->m_bus = nullptr;
     }
 }
-
-// Configuration
 
 void WVirtualPlugin::setFile(const QString &filePath) {
     Q_D(WVirtualPlugin);
@@ -99,16 +90,13 @@ QStringList WVirtualPlugin::getTopics() const {
     return d->m_topics;
 }
 
-// Initialisation
-/// Initialises the virtual plugin: selects topics, subscribes, and may launch
-/// the executable.
 bool WVirtualPlugin::init(WMessage &msg) {
     Q_UNUSED(msg);
     Q_D(WVirtualPlugin);
 
     if (!d->m_plugin) {
-        qWarning()
-        << "WVirtualPlugin::init called without a plugin metadata object";
+        qWarning() << tr("WVirtualPlugin::init called without a plugin "
+                         "metadata object");
         return false;
     }
 
@@ -119,7 +107,7 @@ bool WVirtualPlugin::init(WMessage &msg) {
     d->m_bus = weClass->widgetManager();
 
     if (d->m_topics.isEmpty()) {
-        // Listen on VirtualPlugin.<name>
+        // Default to a single topic derived from the plugin name.
         if (d->m_topics.isEmpty()) {
             const QString name = d->m_plugin->name();
             if (!name.isEmpty())
@@ -130,6 +118,7 @@ bool WVirtualPlugin::init(WMessage &msg) {
     subscribeTopics();
     d->m_admin = d->m_plugin->hasMetaData(Plugin::Admin);
     const QString initArgs = d->m_plugin->initArg();
+    // "default" means no initialisation command was configured.
     if (!initArgs.isEmpty() && initArgs != QLatin1String("default")) {
         const QString op =
             d->m_admin ? QStringLiteral("runas") : QStringLiteral("open");
@@ -139,8 +128,7 @@ bool WVirtualPlugin::init(WMessage &msg) {
     return true;
 }
 
-// Event subscription
-/// Subscribes to every topic in the list.
+/// Subscribes onEventReceived() to every topic in the list.
 void WVirtualPlugin::subscribeTopics() {
     Q_D(WVirtualPlugin);
     if (!d->m_bus || d->m_topics.isEmpty())
@@ -154,8 +142,7 @@ void WVirtualPlugin::subscribeTopics() {
     qDebug() << "WVirtualPlugin subscribed to topics:" << d->m_topics;
 }
 
-// Event handling
-/// Converts an event to command‑line arguments and launches the executable.
+/// Launches the executable with the event's command line.
 void WVirtualPlugin::onEventReceived(const WEvent &event) {
     Q_D(WVirtualPlugin);
     if (d->m_filePath.isEmpty())
@@ -165,15 +152,13 @@ void WVirtualPlugin::onEventReceived(const WEvent &event) {
     const QString op =
         d->m_admin ? QStringLiteral("runas") : QStringLiteral("open");
 
-    // Build the argument string.
     QString params;
     params += event.msg.command;
 
     WShellExecute::asyncExecute(d->m_filePath, op, params);
 }
 
-// Deinitialisation
-/// Unsubscribes from all events and releases the event bus pointer.
+/// Unsubscribes from the event bus.
 bool WVirtualPlugin::deinit(WMessage &msg) {
     Q_UNUSED(msg);
     Q_D(WVirtualPlugin);
@@ -184,11 +169,9 @@ bool WVirtualPlugin::deinit(WMessage &msg) {
     return true;
 }
 
-// Message reception
-/// Ignored; all communication is handled through the event bus.
+/// Intentionally ignored: the event bus is used instead of this channel.
 void WVirtualPlugin::recMsg(WMessage &msg) {
     Q_UNUSED(msg);
-    // Not used in the event‑bus architecture.
 }
 
 } // namespace we

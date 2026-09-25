@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -93,7 +93,7 @@ QVariantMap WConfigDirRef::toMap() const {
     if (!m_viewer)
         return map;
     for (auto *data : m_viewer->allConfigData()) {
-        map[data->key()] = data->getTemporary(); // 仅当前层数据项，不递归
+        map[data->key()] = data->getTemporary(); // current level only, no recursion
     }
     return map;
 }
@@ -122,26 +122,25 @@ QVariant WConfigDirRef::getRelative(const QString &relPath) const {
     if (!m_viewer || !validateRelPath(relPath))
         return QVariant();
     if (relPath.isEmpty())
-        return toVariant(); // 返回整个目录的递归表示
+        return toVariant(); // empty path: return the whole directory recursively
 
     QStringList parts = relPath.split('/', Qt::SkipEmptyParts);
     WConfigViewer *current = m_viewer;
     for (int i = 0; i < parts.size(); ++i) {
         const QString &part = parts[i];
         if (i == parts.size() - 1) {
-            // 最后一段：尝试数据项
+            // Last segment: a data item takes precedence over a subdirectory
             WConfigDataBase *data = current->getConfigData(part);
             if (data)
                 return data->getTemporary();
-            // 尝试子目录
             WConfigViewer *child = current->findChildViewer(part);
             if (child) {
                 WConfigDirRef childRef(child);
-                return childRef.toVariant(); // 递归返回子树
+                return childRef.toVariant();
             }
             return QVariant();
         } else {
-            // 中间路径
+            // Intermediate segment: descend into the subdirectory
             WConfigViewer *child = current->findChildViewer(part);
             if (!child)
                 return QVariant();
@@ -156,7 +155,7 @@ bool WConfigDirRef::setRelative(const QString &relPath, const QVariant &val,
     if (!m_viewer || !validateRelPath(relPath))
         return false;
     if (relPath.isEmpty())
-        return false; // 不能设置根目录本身
+        return false; // the root directory itself cannot be set
     if (!force)
         if (isEffectivelyLocked())
             return false;
@@ -165,26 +164,23 @@ bool WConfigDirRef::setRelative(const QString &relPath, const QVariant &val,
     for (int i = 0; i < parts.size(); ++i) {
         const QString &part = parts[i];
         if (i == parts.size() - 1) {
-            // 最后一段：尝试数据项
+            // Last segment: a data item takes precedence over a subdirectory
             WConfigDataBase *data = current->getConfigData(part);
             if (data) {
                 return data->setTemporary(val);
             }
-            // 尝试子目录
             WConfigViewer *child = current->findChildViewer(part);
             if (child) {
                 WConfigDirRef childRef(child);
                 return childRef.fromVariant(val);
             }
-            // 不存在，创建新项
+            // Not found: create it, as a subdirectory for a map value, else as a data item
             if (val.canConvert<QVariantMap>()) {
-                // 创建子目录
                 WConfigViewer *newChild = new WConfigViewer(part, current);
                 current->addChild(newChild, force);
                 WConfigDirRef newRef(newChild);
                 return newRef.fromVariant(val);
             } else {
-                // 创建数据项
                 WConfigDataBase *newData = createDataFromVariant(part, val, current);
                 if (newData) {
                     if (!current->addConfigData(newData, force)) {
@@ -196,7 +192,7 @@ bool WConfigDirRef::setRelative(const QString &relPath, const QVariant &val,
                 return false;
             }
         } else {
-            // 中间路径：必须存在或创建为目录
+            // Intermediate segment: must exist or be created as a directory
             WConfigViewer *child = current->findChildViewer(part);
             if (!child) {
                 child = new WConfigViewer(part, current);
@@ -252,7 +248,7 @@ bool WConfigDirRef::fromVariant(const QVariant &variant, bool force) {
             return false;
     QVariantMap map = variant.toMap();
 
-    // 先更新已存在的数据项和子目录，再创建新的
+    // Update existing items and subdirectories first, then create the missing ones
     for (auto it = map.begin(); it != map.end(); ++it) {
         const QString &key = it.key();
         const QVariant &value = it.value();
@@ -270,7 +266,7 @@ bool WConfigDirRef::fromVariant(const QVariant &variant, bool force) {
             continue;
         }
 
-        // 不存在，创建
+        // Not present: create it
         if (value.canConvert<QVariantMap>()) {
             WConfigViewer *newChild = new WConfigViewer(key, m_viewer);
             m_viewer->addChild(newChild);
@@ -303,7 +299,7 @@ bool WConfigDirRef::contains(const QString &relPath) const {
     if (!m_viewer || !validateRelPath(relPath))
         return false;
     if (relPath.isEmpty())
-        return true; // 当前目录总存在
+        return true; // the current directory always exists
 
     QStringList parts = relPath.split('/', Qt::SkipEmptyParts);
     WConfigViewer *current = m_viewer;
@@ -329,7 +325,7 @@ DataType WConfigDirRef::typeOf(const QString &relPath) const {
     if (!m_viewer || !validateRelPath(relPath))
         return DataType::None;
     if (relPath.isEmpty())
-        return DataType::Object; // 当前目录视为Object
+        return DataType::Object; // the current directory is treated as Object
 
     QStringList parts = relPath.split('/', Qt::SkipEmptyParts);
     WConfigViewer *current = m_viewer;

@@ -1,15 +1,11 @@
 /**
  * @file wvirtualplugin.h
- * @brief Virtual plugin that bridges an external executable through an event
- * bus.
- *
- * WVirtualPlugin implements WPluginInterface by launching an external program
- * in response to events published on a global event bus. It is typically used
- * to integrate non‑Qt plugins (e.g., .exe, .bat) into the system.
+ * @brief Bridges an external executable into the plugin system through the
+ * event bus.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -40,91 +36,58 @@ namespace we {
 class WVirtualPluginPrivate;
 
 /**
- * @brief A virtual plugin that relays event bus messages to an external
- * executable.
+ * @brief WPluginInterface implementation that launches an external program.
  *
- * When an event matching the plugin's subscribed topics is published on the
- * global widget manager / event bus, the virtual plugin translates it into
- * command‑line arguments and launches the configured executable. It also
- * supports an optional initialisation command and admin privileges.
+ * Events published on the global event bus (the widget manager) are matched
+ * against the subscribed topics and turned into a command line for the
+ * configured executable, optionally elevated with administrator rights. Used
+ * to integrate non-Qt backends such as .exe/.bat files.
  *
- * @note This class inherits both QObject (for ownership / signal‑slot) and
- *       WPluginInterface (for lifecycle management).
+ * @note Inherits QObject (ownership / signal-slot) and WPluginInterface
+ *       (lifecycle).
  */
 class WE_EXPORT WVirtualPlugin : public QObject, public WPluginInterface {
     Q_OBJECT
     Q_DISABLE_COPY(WVirtualPlugin)
     Q_INTERFACES(WPluginInterface)
 public:
-    /**
-   * @brief Constructs a virtual plugin.
-   * @param parent Optional parent QObject.
-   */
     explicit WVirtualPlugin(QObject *parent = nullptr);
 
-    /// Destroys the plugin and unsubscribes from all events.
+    /// Unsubscribes from the event bus on destruction.
     ~WVirtualPlugin() override;
 
     /**
-   * @brief Initialises the plugin: selects topics, subscribes, and may launch
-   * the executable.
-   * @param msg Initialisation message (currently unused).
-   * @return @c true on success.
-   */
+     * @brief Resolves the event bus and subscribes to the configured topics.
+     * @param msg Unused.
+     * @return false if no WPlugin was associated or no event bus is available.
+     *
+     * Fails unless setPlugin() was called beforehand.
+     */
     bool init(WMessage &msg) override;
 
-    /**
-   * @brief Receives a WMessage from the plugin manager.
-   *
-   * This implementation ignores the message; all communication is performed
-   * through the event bus.
-   *
-   * @param msg The incoming message (unused).
-   */
+    /// No-op: communication happens through the event bus, not this channel.
     void recMsg(WMessage &msg) override;
 
-    /**
-   * @brief Deinitialises the plugin: unsubscribes and cleans up.
-   * @param msg Deinitialisation message (currently unused).
-   * @return @c true on success.
-   */
+    /// Unsubscribes from the event bus.
     bool deinit(WMessage &msg) override;
 
-    /**
-   * @brief Sets the path to the executable file.
-   * @param filePath Absolute or relative path to the executable.
-   */
+    /// Path of the executable to launch. Not validated here.
     void setFile(const QString &filePath);
-
-    /**
-   * @brief Returns the configured executable path.
-   */
     QString getFilePath() const;
 
-    /**
-   * @brief Associates this virtual plugin with a WPlugin metadata object.
-   * @param plugin A pointer to the owning WPlugin instance.
-   */
+    /// Associates the owning WPlugin; required before init().
     void setPlugin(WPlugin *plugin);
 
-    /**
-   * @brief Explicitly sets the list of event topics to listen for.
-   * @param topics List of topic strings (e.g., "plugin.login").
-   *
-   * If not set manually, topics are derived from the plugin’s metadata.
-   */
+    /// Overrides the topic list; otherwise init() derives
+    /// "VirtualPlugin.<name>" from the plugin metadata.
     void setTopics(const QStringList &topics);
-
-    /**
-   * @brief Returns the current list of subscribed topics.
-   */
     QStringList getTopics() const;
 
 private:
-    /// Called when an event matching a subscribed topic is published.
+    /// Launches the executable for an event received on a subscribed topic.
     void onEventReceived(const WEvent &event);
 
-    /// Subscribes to all topics in the internal list.
+    /// Subscribes onEventReceived() to every topic in the list.
     void subscribeTopics();
 
     QScopedPointer<WVirtualPluginPrivate> d_ptr;

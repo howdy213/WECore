@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -48,7 +48,7 @@ void WConfigEditorInt::createEditor() {
 
 void WConfigEditorInt::setConfigData(WConfigDataBase *data) {
     m_data = data;
-    auto *intData = static_cast<WConfigDataInt *>(data);
+    auto *intData = dynamic_cast<WConfigDataInt *>(data);
     if (intData)
         m_intSpin->setValue(intData->toVariant().toInt());
 }
@@ -65,5 +65,10 @@ WConfigDataInt* WConfigEditorInt::getData()
 }
 
 WConfigDataBase *WConfigEditorInt::configData() { return getData(); }
+
+void WConfigEditorInt::refreshFromData() {
+    if (m_data && m_intSpin)
+        m_intSpin->setValue(m_data->getTemporary().toInt());
+}
 
 } // namespace we::config

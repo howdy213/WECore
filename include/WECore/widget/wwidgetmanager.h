@@ -9,8 +9,8 @@
  * with a timeout.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -50,13 +50,17 @@ class WWidgetManagerPrivate;
 class WEBase;
 
 /**
- * @brief Central widget manager and event bus.
+ * @brief Central widget registry and publish‑subscribe event bus.
  *
- * Each widget is registered together with a plugin interface and a unique ID.
- * The event bus allows components to publish events on named topics; subscribers
- * using glob‑style patterns (*, **) are invoked when a matching event is published.
+ * Each registered widget carries a unique ID and its owning plugin interface,
+ * so it can later be looked up by ID, by object, or by attribute.
  *
- * A built‑in request/response mechanism uses temporary reply topics and a timeout.
+ * The event bus lets components publish WEvent on named topics; subscribers
+ * may register glob patterns (`*` matches one segment, `**` matches any) and
+ * are invoked when a matching topic is published.
+ *
+ * A built‑in request/response mechanism pairs a reply with its request through
+ * a generated correlation ID plus a timeout.
  */
 class WE_EXPORT WWidgetManager : public QObject
 {
@@ -64,158 +68,113 @@ class WE_EXPORT WWidgetManager : public QObject
     Q_DECLARE_PRIVATE(WWidgetManager)
 
 public:
-    /**
-     * @brief Constructs a widget manager.
-     * @param base  Pointer to the owning WEBase instance (may be nullptr).
-     */
+    /// @p base is kept for plugin/widget lookups and may be null.
     explicit WWidgetManager(WEBase *base = nullptr);
 
-    /// Destroys the manager, cleaning up subscriptions and widget data.
     ~WWidgetManager() override;
 
     // ---------- Widget registration ----------
-    /**
-     * @brief Registers a widget with a unique ID and its owning plugin interface.
-     * @param id      The widget’s unique identifier.
-     * @param widget  The QObject representing the widget.
-     * @param plugin  The plugin interface that hosts the widget.
-     * @return @c true on success; @c false if the widget or ID is already registered.
-     */
+    /// Registers @p widget under @p id, owned by @p plugin; returns @c false if the widget is already registered or @p id is taken.
     bool addWidget(QUuid id, QObject *widget, WPluginInterface *plugin);
 
-    /**
-     * @brief Retrieves a widget by its UUID.
-     * @param id  The widget UUID.
-     * @return A pointer to the widget, or @c nullptr if not found.
-     */
+    /// Widget registered under @p id, or @c nullptr.
     QObject *getWidget(QUuid id);
 
-    /**
-     * @brief Returns all registered widgets.
-     */
+    /// All registered widgets.
     QVector<QObject *> getWidgets();
 
-    /**
-     * @brief Finds widgets whose attribute @p key matches @p value.
-     * @param key    Attribute key.
-     * @param value  Desired attribute value.
-     * @return A vector of matching widget pointers.
-     */
+    /// Widgets whose attribute @p key equals @p value.
     QVector<QObject *> getWidget(const QString &key, const QVariant &value);
 
-    /**
-     * @brief Returns the UUID of a registered widget.
-     * @param widget  A widget previously added via addWidget().
-     * @return The widget’s UUID, or a null UUID if not found.
-     */
+    /// UUID of @p widget, or a null UUID if it is not registered.
     QUuid getUuid(QObject *widget);
 
-    /**
-     * @brief Reads a widget attribute.
-     * @param widget  The widget.
-     * @param key     Attribute key.
-     * @return The attribute value, or an invalid QVariant if not found.
-     */
+    /// Value of attribute @p key on @p widget, or an invalid QVariant if absent.
     QVariant getAttr(QObject *widget, const QString &key);
 
-    /**
-     * @brief Sets a widget attribute, with automatic name deduplication for "Name".
-     * @param widget  The widget.
-     * @param key     Attribute key.
-     * @param value   New value.
-     * @return @c true on success; @c false if the widget is not registered.
-     */
+    /// Sets attribute @p key on @p widget (with "Name" deduplication); returns @c false if @p widget is unregistered.
     bool setAttr(QObject *widget, const QString &key, const QVariant &value);
 
-    /// Calls initWidget() on all registered widgets (typically once after loading).
+    /// Calls initWidget() on every registered widget; typically invoked once after loading.
     void initWidget();
 
     // ---------- Event bus: subscribe ----------
     /**
-     * @brief Subscribes to a topic pattern using a member function pointer.
-     * @param pattern  Topic pattern (e.g., "user.*", "login").
-     * @param receiver The object that will receive the event.
-     * @param slot     A member function with the signature `void(const WEvent &)`.
-     * @return @c true on success.
+     * @brief Subscribes @p receiver to @p pattern using one of its member functions.
      *
-     * This is a templated convenience overload that wraps the member function
-     * into a SubscribeFunc.
+     * @p slot must take `const WEvent &`. The subscription stays alive until
+     * @p receiver is destroyed or is removed explicitly; the callback is run in
+     * @p receiver's thread.
      */
     template <typename Func>
     bool subscribe(const QString &pattern, QObject *receiver, Func slot);
 
     /**
-     * @brief Subscribes to a topic pattern using a generic callback.
-     * @param pattern  Topic pattern.
-     * @param context  The subscriber QObject (used for lifetime tracking).
-     * @param callback A callable with the signature `void(const WEvent &)`.
-     * @return @c true on success.
+     * @brief Subscribes @p context to @p pattern with an arbitrary callback.
+     *
+     * @p callback must take `const WEvent &`; the subscription is dropped
+     * automatically when @p context is destroyed.
      */
     bool subscribe(const QString &pattern, QObject *context,
                    SubscribeFunc callback);
 
-    /// Removes all subscriptions associated with @p receiver.
+    /// Removes every subscription of @p receiver (and any whose receiver is already gone).
     void unsubscribeAll(QObject *receiver);
 
-    /// Removes subscriptions matching @p receiver and @p pattern.
+    /// Removes all subscriptions of @p receiver for @p pattern.
     void unsubscribe(QObject *receiver, const QString &pattern);
 
     // ---------- Event bus: publish ----------
     /**
-     * @brief Publishes an event (asynchronous – thread‑safe).
+     * @brief Publishes @p event to matching subscribers asynchronously.
      *
-     * If called from a non‑GUI thread, the event is queued to the manager’s
-     * owning thread.
-     * @param event  The event to publish.
+     * Thread‑safe: when called from a thread other than the manager's, dispatch
+     * is queued onto the manager's thread. Each callback runs in its receiver's
+     * thread.
      */
     void publish(const WEvent &event);
 
     /**
-     * @brief Publishes an event synchronously (immediate delivery).
-     * @param event  The event to publish.
+     * @brief Publishes @p event to matching subscribers immediately.
+     *
+     * Callbacks run synchronously in the calling thread, so re‑entrancy is
+     * possible. Unlike publish(), there is no thread hop and eventDispatched is
+     * not emitted.
      */
     void publishSync(const WEvent &event);
 
     // ---------- Request / Response ----------
     /**
-     * @brief Sends a request on @p topic and awaits a reply.
-     * @param pattern    The request topic.
-     * @param data       Payload to send.
-     * @param timeoutMs  Timeout in milliseconds (default 5000).
-     * @return A QFuture that will contain the reply data or an exception on timeout.
+     * @brief Sends a request on @p pattern and returns a future carrying the reply.
+     *
+     * The reply is matched by a generated correlation ID; if none arrives within
+     * @p timeoutMs, the future reports a "Request timed out" exception.
      */
     QFuture<QVariant> request(const QString &pattern, const QVariant &data,
                               int timeoutMs = 5000);
 
 signals:
-    /// Emitted after every event dispatch (can be used for logging or auditing).
+    /// Emitted by publish() after dispatch; not emitted by publishSync().
     void eventDispatched(const we::WEvent &event);
 
 private:
     QScopedPointer<WWidgetManagerPrivate> d_ptr;
 
-    /// Invokes a callback in the receiver's thread.
+    /// Invokes @p cb through a direct or queued connection so it runs in @p receiver's thread.
     void invokeCallback(const SubscribeFunc &cb, QObject *receiver,
                         const WEvent &event);
 
-    /// Cleans up all subscriptions for a destroyed receiver.
+    /// Drops all subscriptions held for a destroyed receiver.
     void onReceiverDestroyed(QObject *receiver);
 
     /**
      * @brief Adjusts a value before storing it as a widget attribute.
-     *        Currently handles automatic name deduplication.
-     * @param widget  The widget whose attribute is being set.
-     * @param key     Attribute key.
-     * @param value  Desired value.
-     * @return The adjusted value (e.g., a unique name).
+     *
+     * For "Name", '#' is appended until the name is unique among widgets.
      */
     QVariant changeVariant(QObject *widget, const QString &key, const QVariant &value);
 
-    /**
-     * @brief Compiles a glob‑style topic pattern into a QRegularExpression.
-     * @param pattern  Pattern string (e.g., "user.*.name").
-     * @return A QRegularExpression anchored to match the whole topic.
-     */
+    /// Compiles a glob pattern (`*`, `**`, `?`) into a whole‑topic‑anchored QRegularExpression.
     static QRegularExpression compilePattern(const QString &pattern);
 };
 

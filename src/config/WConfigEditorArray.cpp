@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -31,8 +31,6 @@ WConfigEditorArray::WConfigEditorArray(WConfigItemWidget *parent)
 }
 
 void WConfigEditorArray::createEditor() {
-    auto *arrayData = static_cast<WConfigDataArray *>(m_data);
-    Q_UNUSED(arrayData);
     QWidget *container = new QWidget(this);
     QVBoxLayout *mainLayout = new QVBoxLayout(container);
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -76,7 +74,7 @@ void WConfigEditorArray::createEditor() {
 
 void WConfigEditorArray::setConfigData(WConfigDataBase *data) {
     m_data = data;
-    auto *arrayData = static_cast<WConfigDataArray *>(data);
+    auto *arrayData = dynamic_cast<WConfigDataArray *>(data);
     if (!arrayData)
         return;
     m_arrayTree->clear();
@@ -91,7 +89,9 @@ void WConfigEditorArray::setConfigData(WConfigDataBase *data) {
 }
 
 WConfigDataArray *WConfigEditorArray::getData() {
-    auto *arrayData = static_cast<WConfigDataArray *>(m_data);
+    auto *arrayData = dynamic_cast<WConfigDataArray *>(m_data);
+    if (!arrayData)
+        return nullptr;
     QVariantList list;
     for (int i = 0; i < m_arrayTree->topLevelItemCount(); ++i) {
         QTreeWidgetItem *item = m_arrayTree->topLevelItem(i);
@@ -107,7 +107,9 @@ WConfigDataArray *WConfigEditorArray::getData() {
 WConfigDataBase *WConfigEditorArray::configData() { return getData(); }
 
 void WConfigEditorArray::onAddArrayElement() {
-    auto *arrayData = static_cast<WConfigDataArray *>(m_data);
+    auto *arrayData = dynamic_cast<WConfigDataArray *>(m_data);
+    if (!arrayData)
+        return;
     QVariant defaultValue = defaultVariantForType(arrayData->elementType());
     if (!defaultValue.isValid())
         return;
@@ -122,15 +124,15 @@ void WConfigEditorArray::onAddArrayElement() {
 }
 
 void WConfigEditorArray::onInsertBefore() {
-    insertElementAt(-1); // 特殊标记表示在选中之前
+    insertElementAt(-1); // -1 marks "insert before the selection"
 }
 
 void WConfigEditorArray::onInsertAfter() {
-    insertElementAt(-2); // 特殊标记表示在选中之后
+    insertElementAt(-2); // -2 marks "insert after the selection"
 }
 
 void WConfigEditorArray::insertElementAt(int position) {
-    auto *arrayData = static_cast<WConfigDataArray *>(m_data);
+    auto *arrayData = dynamic_cast<WConfigDataArray *>(m_data);
     if (!arrayData)
         return;
 
@@ -141,7 +143,7 @@ void WConfigEditorArray::insertElementAt(int position) {
         return;
     }
     int index = selected->text(0).toInt();
-    if (position == -1) { /* insert before */
+    if (position == -1) { /* insert before: keep index unchanged */
     } else if (position == -2) {
         index = index + 1;
     } else
@@ -161,7 +163,7 @@ void WConfigEditorArray::insertElementAt(int position) {
 }
 
 void WConfigEditorArray::refreshTree() {
-    auto *arrayData = static_cast<WConfigDataArray *>(m_data);
+    auto *arrayData = dynamic_cast<WConfigDataArray *>(m_data);
     if (!arrayData)
         return;
     m_arrayTree->clear();
@@ -173,15 +175,12 @@ void WConfigEditorArray::refreshTree() {
         item->setFlags(item->flags() | Qt::ItemIsEditable);
         m_arrayTree->addTopLevelItem(item);
     }
-    // 更新所有行的索引显示
-    for (int i = 0; i < m_arrayTree->topLevelItemCount(); ++i) {
-        m_arrayTree->topLevelItem(i)->setData(0, Qt::DisplayRole,
-                                              QString::number(i));
-    }
 }
 
 void WConfigEditorArray::onRemoveArrayElement() {
-    auto *arrayData = static_cast<WConfigDataArray *>(m_data);
+    auto *arrayData = dynamic_cast<WConfigDataArray *>(m_data);
+    if (!arrayData)
+        return;
     QTreeWidgetItem *selected = m_arrayTree->currentItem();
     if (!selected)
         return;
@@ -197,7 +196,9 @@ void WConfigEditorArray::onRemoveArrayElement() {
 void WConfigEditorArray::onArrayItemChanged(QTreeWidgetItem *item, int column) {
     if (column != 1)
         return;
-    auto *arrayData = static_cast<WConfigDataArray *>(m_data);
+    auto *arrayData = dynamic_cast<WConfigDataArray *>(m_data);
+    if (!arrayData)
+        return;
     int index = item->text(0).toInt();
     QVariant value = item->data(1, Qt::EditRole);
     arrayData->setElement(index, value);

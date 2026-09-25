@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -28,6 +28,16 @@
 
 namespace we::config {
 
+/**
+ * @brief Declarative builder for the default configuration structure.
+ *
+ * A template is itself a WConfigViewer tree describing the intended directories,
+ * items, defaults and policies. applyTo() copies that structure into a live
+ * WConfigDocument when the document is initialized or reset. The add* overloads
+ * taking a Properties list are shortcuts that build a WConfigItemInfo internally;
+ * the WConfigItemInfo overloads are used when more detail (description, options,
+ * custom type, ...) is required.
+ */
 class WE_EXPORT WConfigTemplate : public WConfigViewer {
 public:
     WConfigTemplate() : WConfigViewer("") {}
@@ -56,9 +66,11 @@ public:
     void addAction(const QString &path, const QString &key,
                    ActionCallback callback, const Properties &properties = {},
                    WConfigViewer *parent = nullptr);
+    // Returns the created object (owned by the tree), or nullptr on conflict/invalid path.
     WConfigDataObject *addObject(const QString &path, const QString &key,
                                  const Properties &properties = {},
                                  WConfigViewer *parent = nullptr);
+    // Attaches an externally created item, marking it and its subtree as template-provided.
     void addObjectChild(WConfigDataObject *object, WConfigDataBase *childData);
 
     void addInt(const QString &path, const QString &key,
@@ -78,6 +90,13 @@ public:
     WConfigDataObject *addObject(const QString &path, const QString &key,
                                  const WConfigItemInfo &info,
                                  WConfigViewer *parent = nullptr);
+    // typeName must be registered in WConfigCustomTypeRegistry; otherwise nothing is added.
+    void addCustom(const QString &path, const QString &key,
+                   const QString &typeName, const QVariant &defaultValue = {},
+                   const Properties &properties = {},
+                   WConfigViewer *parent = nullptr);
+    void addCustom(const QString &path, const QString &key,
+                   const WConfigItemInfo &info, WConfigViewer *parent = nullptr);
 
     void setDeletionPolicy(const QString &path, DeletionPolicy policy);
     void setDirectoryPolicy(

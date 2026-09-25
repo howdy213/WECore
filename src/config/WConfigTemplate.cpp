@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -18,18 +18,32 @@
  * limitations under the License.
  */
 #include "WECore/config/WConfigTemplate.h"
+#include "WECore/config/WConfigDataCustom.h"
 #include "WECore/config/WConfigDataDef.h"
 #include <QDebug>
 #include <QStringList>
 
 namespace we::config {
 
+/// Deep-copy a template item (recursively for objects) using its temporary value as the default.
 static WConfigDataBase *createDataCopy(const WConfigDataBase *source,
                                        WConfigViewer *parent) {
     if (!source)
         return nullptr;
 
     DataType type = source->type();
+
+    if (type == DataType::Custom) {
+        auto *srcCustom = static_cast<const WConfigDataCustom *>(source);
+        WConfigDataBase *copy = createCustomData(
+            source->key(), srcCustom->typeName(), source->getTemporary(),
+            source->info(), parent);
+        if (copy) {
+            copy->setIsFromTemplate(true);
+            return copy;
+        }
+    }
+
     WConfigDataBase *copy = createDataByType(
         type, source->key(), source->getTemporary(), source->info(), parent);
     if (copy) {
@@ -149,7 +163,7 @@ void WConfigTemplate::addObjectChild(WConfigDataObject *object,
     if (!object || !childData)
         return;
 
-    // 递归标记整个子树为模板项
+    // Mark the whole subtree as template-provided
     std::function<void(WConfigDataBase *)> markSubtree =
         [&](WConfigDataBase *data) {
             data->setIsFromTemplate(true);
@@ -169,70 +183,105 @@ void WConfigTemplate::addInt(const QString &path, const QString &key,
                              const WConfigItemInfo &info,
                              WConfigViewer *parent) {
     WConfigViewer *viewer = findViewer(path);
+    // findViewer fails when a path segment collides with an existing data item;
+    // bail out here to avoid dereferencing a null viewer below.
+    if (!viewer)
+        return;
     WConfigDataInt *data = new WConfigDataInt;
     data->init(key, info, parent ? parent : viewer);
     data->setIsFromTemplate(true);
-    viewer->addConfigData(data);
+    if (!viewer->addConfigData(data))
+        delete data; // delete when not added (e.g. duplicate key at this level) to avoid a leak
 }
 
 void WConfigTemplate::addDouble(const QString &path, const QString &key,
                                 const WConfigItemInfo &info,
                                 WConfigViewer *parent) {
     WConfigViewer *viewer = findViewer(path);
+    // findViewer fails when a path segment collides with an existing data item;
+    // bail out here to avoid dereferencing a null viewer below.
+    if (!viewer)
+        return;
     WConfigDataDouble *data = new WConfigDataDouble;
     data->init(key, info, parent ? parent : viewer);
     data->setIsFromTemplate(true);
-    viewer->addConfigData(data);
+    if (!viewer->addConfigData(data))
+        delete data; // delete when not added (e.g. duplicate key at this level) to avoid a leak
 }
 
 void WConfigTemplate::addString(const QString &path, const QString &key,
                                 const WConfigItemInfo &info,
                                 WConfigViewer *parent) {
     WConfigViewer *viewer = findViewer(path);
+    // findViewer fails when a path segment collides with an existing data item;
+    // bail out here to avoid dereferencing a null viewer below.
+    if (!viewer)
+        return;
     WConfigDataString *data = new WConfigDataString;
     data->init(key, info, parent ? parent : viewer);
     data->setIsFromTemplate(true);
-    viewer->addConfigData(data);
+    if (!viewer->addConfigData(data))
+        delete data; // delete when not added (e.g. duplicate key at this level) to avoid a leak
 }
 
 void WConfigTemplate::addBool(const QString &path, const QString &key,
                               const WConfigItemInfo &info,
                               WConfigViewer *parent) {
     WConfigViewer *viewer = findViewer(path);
+    // findViewer fails when a path segment collides with an existing data item;
+    // bail out here to avoid dereferencing a null viewer below.
+    if (!viewer)
+        return;
     WConfigDataBool *data = new WConfigDataBool;
     data->init(key, info, parent ? parent : viewer);
     data->setIsFromTemplate(true);
-    viewer->addConfigData(data);
+    if (!viewer->addConfigData(data))
+        delete data; // delete when not added (e.g. duplicate key at this level) to avoid a leak
 }
 
 void WConfigTemplate::addArray(const QString &path, const QString &key,
                                const WConfigItemInfo &info,
                                WConfigViewer *parent) {
     WConfigViewer *viewer = findViewer(path);
+    // findViewer fails when a path segment collides with an existing data item;
+    // bail out here to avoid dereferencing a null viewer below.
+    if (!viewer)
+        return;
     WConfigDataArray *data = new WConfigDataArray;
     data->init(key, info, parent ? parent : viewer);
     data->setIsFromTemplate(true);
-    viewer->addConfigData(data);
+    if (!viewer->addConfigData(data))
+        delete data; // delete when not added (e.g. duplicate key at this level) to avoid a leak
 }
 
 void WConfigTemplate::addSelect(const QString &path, const QString &key,
                                 const WConfigItemInfo &info,
                                 WConfigViewer *parent) {
     WConfigViewer *viewer = findViewer(path);
+    // findViewer fails when a path segment collides with an existing data item;
+    // bail out here to avoid dereferencing a null viewer below.
+    if (!viewer)
+        return;
     WConfigDataSelect *data = new WConfigDataSelect;
     data->init(key, info, parent ? parent : viewer);
     data->setIsFromTemplate(true);
-    viewer->addConfigData(data);
+    if (!viewer->addConfigData(data))
+        delete data; // delete when not added (e.g. duplicate key at this level) to avoid a leak
 }
 
 void WConfigTemplate::addAction(const QString &path, const QString &key,
                                 const WConfigItemInfo &info,
                                 WConfigViewer *parent) {
     WConfigViewer *viewer = findViewer(path);
+    // findViewer fails when a path segment collides with an existing data item;
+    // bail out here to avoid dereferencing a null viewer below.
+    if (!viewer)
+        return;
     WConfigDataAction *data = new WConfigDataAction;
     data->init(key, info, parent ? parent : viewer);
     data->setIsFromTemplate(true);
-    viewer->addConfigData(data);
+    if (!viewer->addConfigData(data))
+        delete data; // delete when not added (e.g. duplicate key at this level) to avoid a leak
 }
 
 WConfigDataObject *WConfigTemplate::addObject(const QString &path,
@@ -240,16 +289,56 @@ WConfigDataObject *WConfigTemplate::addObject(const QString &path,
                                               const WConfigItemInfo &info,
                                               WConfigViewer *parent) {
     WConfigViewer *viewer = findViewer(path);
+    // findViewer fails when a path segment collides with an existing data item;
+    // bail out here to avoid dereferencing a null viewer below.
+    if (!viewer)
+        return nullptr;
     WConfigDataObject *data = new WConfigDataObject;
     data->init(key, info, parent ? parent : viewer);
     data->setIsFromTemplate(true);
-    viewer->addConfigData(data);
+    if (!viewer->addConfigData(data)) {
+        delete data;
+        return nullptr;
+    }
     return data;
+}
+
+void WConfigTemplate::addCustom(const QString &path, const QString &key,
+                                const QString &typeName,
+                                const QVariant &defaultValue,
+                                const Properties &properties,
+                                WConfigViewer *parent) {
+    WConfigItemInfo info;
+    info.displayName(key);
+    info.defaultValue(defaultValue);
+    info.defaultItem(typeName); // carry the custom type name through defaultItem()
+    for (Property p : properties)
+        info.property(p);
+    addCustom(path, key, info, parent);
+}
+
+void WConfigTemplate::addCustom(const QString &path, const QString &key,
+                                const WConfigItemInfo &info,
+                                WConfigViewer *parent) {
+    WConfigViewer *viewer = findViewer(path);
+    // findViewer fails when a path segment collides with an existing data item;
+    // bail out here to avoid dereferencing a null viewer below.
+    if (!viewer)
+        return;
+    // The custom type name is carried by info.defaultItem()
+    WConfigDataBase *data = createCustomData(key, info.defaultItem(),
+                                             info.defaultValue(), info,
+                                             parent ? parent : viewer);
+    if (!data)
+        return;
+    data->setIsFromTemplate(true);
+    if (!viewer->addConfigData(data))
+        delete data; // delete when not added (e.g. duplicate key at this level) to avoid a leak
 }
 
 void WConfigTemplate::setDeletionPolicy(const QString &path,
                                         DeletionPolicy policy) {
-    WConfigViewer *viewer = findViewer(path, true); // 创建路径（如果不存在）
+    WConfigViewer *viewer = findViewer(path, true); // create the path if missing
     if (viewer)
         viewer->setDeletionPolicy(policy);
 }
@@ -307,12 +396,15 @@ void WConfigTemplate::applyViewerTo(const WConfigViewer *source,
     target->setDescription(source->description());
     for (const WConfigDataBase *sourceData : source->allConfigData()) {
         WConfigDataBase *copy = createDataCopy(sourceData, target);
-        if (copy)
-            target->addConfigData(copy);
+        if (copy && !target->addConfigData(copy))
+            delete copy; // release the copy if it could not be added
     }
     for (const WConfigViewer *child : source->children()) {
         WConfigViewer *targetChild = new WConfigViewer(child->name(), target);
-        target->addChild(targetChild);
+        if (!target->addChild(targetChild)) {
+            delete targetChild; // skip this child directory on a name conflict
+            continue;
+        }
         applyViewerTo(child, targetChild);
     }
     applyPolicyTo(source, target);

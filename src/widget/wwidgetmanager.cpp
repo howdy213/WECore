@@ -3,8 +3,8 @@
  * @brief Implementation of WWidgetManager.
  *
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -39,42 +39,34 @@ using namespace we::Consts;
 namespace we {
 
 // Private helper structures
-/**
- * @brief Represents a single event bus subscription.
- */
+/// A single event bus subscription.
 struct Subscription {
-    QString pattern;            ///< Original pattern string (e.g., "user.*").
-    QRegularExpression regex;   ///< Compiled regex for matching.
-    QPointer<QObject> receiver; ///< Weak pointer to the subscriber.
-    SubscribeFunc callback;     ///< The callback to invoke.
+    QString pattern;            ///< Original pattern (e.g., "user.*").
+    QRegularExpression regex;   ///< Compiled matcher.
+    QPointer<QObject> receiver; ///< Subscriber; nulled automatically on destruction.
+    SubscribeFunc callback;     ///< Callback to invoke.
 
-    /// Returns @c true if the subscriber still exists.
+    /// True while the subscriber still exists.
     bool valid() const { return !receiver.isNull(); }
 };
 
-/**
- * @brief Private data for WWidgetManager.
- *
- * Stores widget metadata, the subscription list, and a back‑pointer
- * to the owning WEBase instance.
- */
+/// Private data of WWidgetManager: widget metadata and the subscription list.
 class WWidgetManagerPrivate {
 public:
-    /// Metadata associated with a registered widget.
+    /// Metadata of a registered widget.
     struct WidgetMeta {
         QUuid id;                      ///< Unique widget ID.
         QMap<QString, QVariant> attrs; ///< Arbitrary key‑value attributes.
         WPluginInterface *pluginParent = nullptr; ///< Plugin that owns the widget.
     };
 
-    WEBase *we = nullptr; ///< Back‑pointer to the application base.
+    WEBase *we = nullptr; ///< Application base; may be null.
     QHash<QObject *, WidgetMeta>
-        widgets; ///< Map from widget object to its metadata.
+        widgets; ///< Registered widgets and their metadata.
     QList<Subscription> subscriptions; ///< Active event subscriptions.
 };
 
 // Helper: compilePattern
-/// Compiles a glob‑style pattern into an anchored regular expression.
 QRegularExpression WWidgetManager::compilePattern(const QString &pattern) {
     if (!pattern.contains('*') && !pattern.contains('?')) {
         return QRegularExpression('^' + QRegularExpression::escape(pattern) + '$');
@@ -329,8 +321,8 @@ QFuture<QVariant> WWidgetManager::request(const QString &pattern,
     QTimer::singleShot(timeoutMs, this, [this, promise, isDone, replyPattern]() {
         if (!*isDone) {
             *isDone = true;
-            promise->setException(
-                std::make_exception_ptr(std::runtime_error("Request timed out")));
+            promise->setException(std::make_exception_ptr(
+                std::runtime_error(tr("Request timed out").toStdString())));
             promise->finish();
             unsubscribe(this, replyPattern);
         }

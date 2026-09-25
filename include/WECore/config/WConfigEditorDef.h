@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -27,4 +27,5 @@
 #include "WConfigEditorObject.h"
 #include "WConfigEditorSelect.h"
 #include "WConfigEditorAction.h"
+#include "WConfigEditorCustom.h"
 #endif // WCONFIGEDITORDEF_H

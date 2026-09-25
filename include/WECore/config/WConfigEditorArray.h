@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -27,7 +27,11 @@
 
 namespace we::config {
 
+// Editor for Array items: lists elements in a tree with append / insert / remove
+// buttons; edits are written back to the item as a variant list.
 class WE_EXPORT WConfigEditorArray : public WConfigEditorBase {
+    Q_OBJECT
+
 public:
     WConfigEditorArray(WConfigItemWidget *parent = nullptr);
     void createEditor() override;

@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -26,11 +26,15 @@
 
 namespace we::config {
 
+// Metadata of a single config item: display name, description, element type (for
+// arrays), properties, decimal places, default value, option list and callback.
+// Built by the template or the caller and handed to WConfigDataBase. Setters
+// return *this to allow chaining.
 class WE_EXPORT WConfigItemInfo {
 public:
     WConfigItemInfo() = default;
 
-    // 链式设置
+    // Fluent setters
     WConfigItemInfo &displayName(const QString &name) {
         m_displayName = name;
         return *this;
@@ -56,6 +60,8 @@ public:
         return *this;
     }
     WConfigItemInfo &defaultValue(const QVariant &val) {
+        // QJsonDocument yields integers as LongLong; store them as int so an
+        // int-typed item keeps its natural type
         if (val.typeId() == QMetaType::LongLong){
             m_defaultValue = val.toInt();
             return *this;
@@ -75,11 +81,23 @@ public:
         m_callback = cb;
         return *this;
     }
-    // 访问器
+    // Accessors
     QString displayName() const { return m_displayName; }
     QString description() const { return m_description; }
     DataType elementType() const { return m_elementType; }
     Properties properties() const { return m_properties; }
+    bool hasProperty(Property p) const { return m_properties.contains(p); }
+    void addProperty(Property p) {
+        if (!m_properties.contains(p))
+            m_properties.append(p);
+    }
+    void removeProperty(Property p) {
+        int idx = m_properties.indexOf(p);
+        while (idx >= 0) {
+            m_properties.removeAt(idx);
+            idx = m_properties.indexOf(p);
+        }
+    }
     int decimalPlaces() const { return m_decimalPlaces; }
     QString defaultItem() const { return m_defaultItem; }
     QVariant defaultValue() const { return m_defaultValue; }

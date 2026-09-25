@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -33,7 +33,7 @@ void WConfigEditorAction::createEditor()
     }
     QHBoxLayout* layout = new QHBoxLayout(this);
     layout->setContentsMargins(0,0,0,0);
-    layout->addStretch();
+    layout->addStretch(); // Keep the button right-aligned.
     layout->addWidget(m_button);
     setLayout(layout);
     connect(m_button, &QPushButton::clicked, this, &WConfigEditorAction::onButtonClicked);
@@ -42,8 +42,8 @@ void WConfigEditorAction::createEditor()
 void WConfigEditorAction::setConfigData(WConfigDataBase* data)
 {
     m_data = data;
-    m_actionData = static_cast<WConfigDataAction*>(data);
-    if (m_button) {
+    m_actionData = dynamic_cast<WConfigDataAction*>(data);
+    if (m_button && m_data) {
         m_button->setText(m_data->info().displayName().isEmpty() ? m_data->key() : m_data->info().displayName());
     }
 }

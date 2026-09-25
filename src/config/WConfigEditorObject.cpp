@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -81,11 +81,11 @@ void WConfigEditorObject::createEditor() {
 
 void WConfigEditorObject::setConfigData(WConfigDataBase *data) {
     m_data = data;
-    m_objData = static_cast<WConfigDataObject *>(data);
+    m_objData = dynamic_cast<WConfigDataObject *>(data);
     if (!m_objData)
         return;
     m_objectTree->clear();
-    // 传入 m_objData 作为顶层父对象，深度为0
+    // Root call: m_objData is its own parent object at depth 0.
     loadObjectChildren(m_objData->content(), nullptr, 0, m_objData);
     setupButtonsForMode();
 }
@@ -108,13 +108,12 @@ void WConfigEditorObject::syncItemToData(QTreeWidgetItem *item,
     if (!data)
         return;
     if (data->type() == DataType::Object) {
-        // 对象类型：递归处理其子项（如果有子项）
+        // Object rows hold no value; their children carry the data.
         for (int i = 0; i < item->childCount(); ++i) {
             syncItemToData(item->child(i),
                            static_cast<WConfigDataObject *>(data)->content());
         }
     } else {
-        // 基本类型：从 EditRole 读取值并设置
         QVariant val = item->data(1, Qt::EditRole);
         if (val.isValid()) {
             data->setTemporary(val);
@@ -152,7 +151,6 @@ WConfigDataObject *WConfigEditorObject::getData() {
 
 WConfigDataBase *WConfigEditorObject::configData() { return getData(); }
 
-// 加载对象子项
 void WConfigEditorObject::loadObjectChildren(WConfigViewer *viewer,
                                              QTreeWidgetItem *parentItem,
                                              int depth,
@@ -165,20 +163,18 @@ void WConfigEditorObject::loadObjectChildren(WConfigViewer *viewer,
         QTreeWidgetItem *item = parentItem ? new QTreeWidgetItem(parentItem)
                                            : new QTreeWidgetItem(m_objectTree);
         item->setData(0, Qt::DisplayRole, childData->key());
+        // UserRole: data item; UserRole+1: parent object; UserRole+2: depth.
         item->setData(0, Qt::UserRole, QVariant::fromValue(childData));
-        // 存储父对象指针 (UserRole+1)
         item->setData(0, Qt::UserRole + 1, QVariant::fromValue(parentObj));
-        // 存储深度 (UserRole+2)
-        item->setData(0, Qt::UserRole + 2, depth + 1); // 子项深度为当前深度+1
+        item->setData(0, Qt::UserRole + 2, depth + 1);
 
-        // 根据类型设置值和编辑角色
         if (childData->type() == DataType::Object) {
-            // 对象类型：显示占位符，不提供 EditRole，禁止编辑
+            // Object rows show a "{...}" placeholder and are not editable.
             item->setData(1, Qt::DisplayRole, "{...}");
-            item->setData(1, Qt::EditRole, QVariant()); // 清空
+            item->setData(1, Qt::EditRole, QVariant());
             item->setFlags(item->flags() & ~Qt::ItemIsEditable);
         } else {
-            // 基本类型：显示值，并设置 EditRole 以支持类型感知编辑
+            // Expose the value via EditRole so the delegate can edit it type-aware.
             QVariant val = childData->getTemporary();
             item->setData(1, Qt::EditRole, val);
             bool editable =
@@ -189,10 +185,8 @@ void WConfigEditorObject::loadObjectChildren(WConfigViewer *viewer,
                 item->setFlags(item->flags() & ~Qt::ItemIsEditable);
         }
 
-        // 递归加载子对象
         if (childData->type() == DataType::Object && depth < s_maxDepth) {
             auto *childObj = static_cast<WConfigDataObject *>(childData);
-            // 子对象的父对象就是 childObj，深度+1
             loadObjectChildren(childObj->content(), item, depth + 1, childObj);
         }
     }
@@ -201,7 +195,7 @@ void WConfigEditorObject::loadObjectChildren(WConfigViewer *viewer,
 void WConfigEditorObject::onObjectItemChanged(QTreeWidgetItem *item,
                                               int column) {
     if (column == 0) {
-        // 键名不允许修改，直接还原
+        // Keys are immutable: restore the displayed name if it was edited.
         WConfigDataBase *childData =
             item->data(0, Qt::UserRole).value<WConfigDataBase *>();
         if (childData) {
@@ -215,9 +209,8 @@ void WConfigEditorObject::onObjectItemChanged(QTreeWidgetItem *item,
         item->data(0, Qt::UserRole).value<WConfigDataBase *>();
     if (!childData)
         return;
-    // 禁止编辑对象类型的值列
+    // Object rows have no editable value; restore the placeholder.
     if (childData->type() == DataType::Object) {
-        // 还原为占位符
         item->setData(1, Qt::DisplayRole, "{...}");
         return;
     }
@@ -225,6 +218,7 @@ void WConfigEditorObject::onObjectItemChanged(QTreeWidgetItem *item,
     childData->setTemporary(newValue);
 }
 
+// Depth of target below root (0 for root itself), or -1 if not a descendant.
 static int getObjectDepth(WConfigDataObject *target, WConfigDataObject *root) {
     if (target == root)
         return 0;
@@ -242,13 +236,11 @@ static int getObjectDepth(WConfigDataObject *target, WConfigDataObject *root) {
 }
 
 void WConfigEditorObject::onAddChildItem() {
-    // 验证对象数据
     if (!m_objData) {
         qWarning() << "WConfigEditorObject::onAddChildItem: m_objData is null";
         return;
     }
 
-    // 检查编辑模式是否允许添加
     if (m_objData->editMode() != ObjectEditMode::FullControl) {
         QMessageBox::warning(this, tr("Not Allowed"),
                              tr("Cannot add child items in current edit mode "
@@ -256,7 +248,7 @@ void WConfigEditorObject::onAddChildItem() {
         return;
     }
 
-    // 确定父对象：如果选中项是 Object，则添加到其内部；否则添加到当前对象
+    // Target the selected Object's content if one is selected, else the current object.
     WConfigDataObject *parentObj = m_objData;
     WConfigDataBase *selectedData = nullptr;
     QTreeWidgetItem *selectedItem = m_selectedItem;
@@ -267,14 +259,13 @@ void WConfigEditorObject::onAddChildItem() {
         }
     }
 
-    // 计算父对象的深度（用于深度限制）
+    // Parent depth, used to enforce the depth limit below.
     int parentDepth = getObjectDepth(parentObj, m_objData);
     if (parentDepth == -1) {
-        // 理论上不可能，若发生则视为根深度
+        // Should not happen; treat an unknown depth as root.
         parentDepth = 0;
     }
 
-    // 弹出添加对话框
     QDialog dialog(this);
     dialog.setWindowTitle(tr("Add Child Item"));
     QFormLayout *form = new QFormLayout(&dialog);
@@ -290,7 +281,7 @@ void WConfigEditorObject::onAddChildItem() {
     QLabel *valueLabel = new QLabel(tr("Value:"), &dialog);
     form->addRow(valueLabel, valueEdit);
 
-    // 类型切换时隐藏/显示值输入框
+    // Hide the value field for the Object type, which has no scalar value.
     connect(typeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             [=](int idx) {
                 bool isObject = (typeCombo->itemText(idx) == "Object");
@@ -311,7 +302,6 @@ void WConfigEditorObject::onAddChildItem() {
     if (dialog.exec() != QDialog::Accepted)
         return;
 
-    // 获取输入数据
     QString key = keyEdit->text().trimmed();
     if (key.isEmpty()) {
         QMessageBox::warning(this, tr("Error"), tr("Key cannot be empty."));
@@ -325,7 +315,6 @@ void WConfigEditorObject::onAddChildItem() {
 
     QString typeStr = typeCombo->currentText();
 
-    // 检查深度限制
     if (typeStr == "Object" && parentDepth >= s_maxDepth) {
         QMessageBox::warning(
             this, tr("Depth Limit Exceeded"),
@@ -334,7 +323,6 @@ void WConfigEditorObject::onAddChildItem() {
         return;
     }
 
-    // 创建新数据项
     std::unique_ptr<WConfigDataBase> newDataPtr;
     if (typeStr == "Object") {
         WConfigDataObject *obj = new WConfigDataObject();
@@ -393,7 +381,7 @@ void WConfigEditorObject::onAddChildItem() {
         return;
     }
 
-    // 添加新项到父对象（优先插入到选中项之后）
+    // Insert right after the selected sibling when possible.
     bool inserted = false;
     if (selectedData && selectedData->type() != DataType::Object) {
         WConfigViewer *content = parentObj->content();
@@ -423,7 +411,6 @@ void WConfigEditorObject::onAddChildItem() {
         }
     }
 
-    // 刷新树显示并发射信号
     m_objectTree->clear();
     loadObjectChildren(m_objData->content(), nullptr, 0, m_objData);
     m_objectTree->expandAll();
@@ -462,7 +449,6 @@ void WConfigEditorObject::onRemoveChildItem() {
         return;
     }
 
-    // 检查父对象的删除策略
     DeletionPolicy policy = parentObj->deletionPolicy();
     if (policy == DeletionPolicy::DisallowAll) {
         QMessageBox::warning(this, tr("Deletion Forbidden"),
@@ -489,14 +475,12 @@ void WConfigEditorObject::onRemoveChildItem() {
     if (reply != QMessageBox::Yes)
         return;
 
-    // 执行删除
     WConfigViewer *content = childData->parent();
     if (!content) {
         QMessageBox::warning(this, tr("Error"), tr("Item has no parent container."));
         return;
     }
 
-    // 尝试从父容器中移除，检查返回值
     if (!content->removeConfigData(childData)) {
         QMessageBox::warning(this, tr("Deletion Failed"),
                              tr("Failed to remove the item from its parent container."));

@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -26,6 +26,7 @@
 
 namespace we::config {
 
+// Editor for Select items: a combo box populated from the item's options list.
 class WE_EXPORT WConfigEditorSelect : public WConfigEditorBase
 {
 public:
@@ -34,6 +35,7 @@ public:
     void setConfigData(WConfigDataBase* data) override;
     WConfigDataSelect* getData();
     WConfigDataBase* configData() override;
+    void refreshFromData() override;
 
 private:
     QComboBox* m_combo = nullptr;

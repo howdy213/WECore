@@ -2,8 +2,8 @@
  * @file webasedata.h
  * @brief Header file for WE base data.
  * @author howdy213
- * @date 2026-05-04
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * @copyright Copyright 2025-2026 howdy213
  *
@@ -26,13 +26,16 @@
 #include <QString>
 #include <QVariant>
 
-#include "WECore/Def/wedef.h"
+#include "WECore/def/wedef.h"
 
 namespace we {
 class WEBaseDataPrivate;
 /**
  * @class WEBaseData
- * @brief Stores and manages base data for the WE system.
+ * @brief Untyped key/value container shared by the WE system.
+ *
+ * Values are stored as QVariant and looked up by string key. An optional
+ * alias map lets a lookup key be redirected to another key. Not a QObject.
  */
 class WE_EXPORT WEBaseData {
 public:
@@ -47,11 +50,7 @@ private:
     WEBaseDataPrivate *d = nullptr;
 };
 
-/**
- * @brief Retrieves data of a specific type.
- * @param name The key of the data to retrieve.
- * @return The data cast to type T.
- */
+/// Typed convenience overload: casts the stored QVariant to @c T.
 template <typename T> T WEBaseData::getData(QString name) {
     return qvariant_cast<T>(getData(name));
 }

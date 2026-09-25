@@ -6,8 +6,8 @@
  * key‑value pairs from a JSON file or string, and to save them back.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -26,12 +26,13 @@
 #ifndef WMETADOCUMENT_H
 #define WMETADOCUMENT_H
 
+#include <QCoreApplication>
 #include <QJsonObject>
 #include <QMap>
 #include <QString>
 #include <QVariant>
 
-#include "WECore/Def/wedef.h"
+#include "WECore/def/wedef.h"
 #include "WECore/metadata/wmetadata.h"
 
 namespace we {
@@ -46,39 +47,30 @@ namespace we {
 class WE_EXPORT WMetaDocument : public WMetaData<QVariant>
 {
 public:
+    Q_DECLARE_TR_FUNCTIONS(WMetaDocument)
+
+public:
     WMetaDocument() = default;
     ~WMetaDocument() override = default;
 
     /**
      * @brief Loads configuration from a JSON source.
      * @param source  Either a file path or raw JSON text, depending on @p isPath.
-     * @param isPath  If @c true, @p source is treated as a path to a UTF‑8
-     *                text file; otherwise as a JSON string.
-     * @return @c true on success, @c false on file I/O error or JSON parse error.
+     * @param isPath  If @c true, @p source is a path to a UTF‑8 text file;
+     *                otherwise it is parsed as a JSON string.
+     * @return @c false on file I/O error or JSON parse error; @c true otherwise,
+     *         including for an empty/null document (the map is then left unchanged).
      */
     bool load(const QString &source, bool isPath);
 
-    /**
-     * @brief Saves the current configuration (user‑set values) to a JSON file.
-     * @param filePath  Destination file path (UTF‑8).
-     * @return @c true if the file was written successfully.
-     */
+    /// Writes the user‑set values to @p filePath as indented UTF‑8 JSON.
     bool save(const QString &filePath) const;
 
-    /**
-     * @brief Exports the current configuration as a compact JSON string.
-     * @return JSON text containing only user‑set key‑value pairs.
-     */
+    /// Returns the user‑set values as a compact JSON string.
     QString toJsonString() const;
 
 private:
-    /**
-     * @brief Converts a flat QMap of QVariants to a QJsonObject.
-     *
-     * This is a simple 1:1 mapping; dot‑separated nesting is not performed.
-     * @param map  The flat map to convert.
-     * @return A QJsonObject with the same keys and values.
-     */
+    /// Flat 1:1 map→object conversion; dot‑separated keys are not turned into nesting.
     static QJsonObject mapToJson(const QMap<QString, QVariant> &map);
 };
 

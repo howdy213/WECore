@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -26,6 +26,7 @@
 
 namespace we::config {
 
+// Editor for Bool items: a single checkbox bound to the item's temporary value.
 class WE_EXPORT WConfigEditorBool : public WConfigEditorBase
 {
 public:
@@ -34,6 +35,7 @@ public:
     void setConfigData(WConfigDataBase* data) override;
     WConfigDataBool* getData();
     WConfigDataBase* configData() override;
+    void refreshFromData() override;
 
 private:
     QCheckBox* m_boolCheck = nullptr;

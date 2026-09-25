@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -27,6 +27,49 @@ WConfigViewer::WConfigViewer(const QString &name, WConfigViewer *parent)
 WConfigViewer::~WConfigViewer() {
     qDeleteAll(m_children);
     qDeleteAll(m_configData);
+    qDeleteAll(m_groups);
+}
+
+WConfigGroupSpec *WConfigViewer::addGroup(const WConfigGroupSpec &spec) {
+    if (spec.groupId.isEmpty())
+        return nullptr;
+    for (WConfigGroupSpec *g : std::as_const(m_groups)) {
+        if (g->groupId == spec.groupId)
+            return nullptr; // reject a duplicate id
+    }
+    auto *owned = new WConfigGroupSpec(spec);
+    m_groups.append(owned);
+    return owned;
+}
+
+bool WConfigViewer::removeGroup(const QString &groupId) {
+    for (int i = 0; i < m_groups.size(); ++i) {
+        if (m_groups[i]->groupId == groupId) {
+            delete m_groups.takeAt(i);
+            return true;
+        }
+    }
+    return false;
+}
+
+WConfigGroupSpec *WConfigViewer::groupById(const QString &groupId) const {
+    for (WConfigGroupSpec *g : std::as_const(m_groups)) {
+        if (g->groupId == groupId)
+            return g;
+    }
+    return nullptr;
+}
+
+void WConfigViewer::clearGroups() {
+    qDeleteAll(m_groups);
+    m_groups.clear();
+}
+
+void WConfigViewer::setGroups(const QList<WConfigGroupSpec *> &in) {
+    // Replace existing groups: free the old ones, then take ownership of the new
+    // pointers (the destructor frees them as well, so the caller must not keep them)
+    qDeleteAll(m_groups);
+    m_groups = in;
 }
 
 QString WConfigViewer::fullPath() const {
@@ -39,7 +82,6 @@ WConfigViewer *WConfigViewer::findChildViewer(const QString &path) {
     QStringList parts = path.split("/", Qt::SkipEmptyParts);
     if (parts.isEmpty())
         return nullptr;
-    // 从当前节点开始逐级查找
     WConfigViewer *current = this;
     for (const QString &part : std::as_const(parts)) {
         bool found = false;
@@ -60,15 +102,13 @@ WConfigDataBase *WConfigViewer::findConfigData(const QString &path) {
     QStringList parts = path.split("/", Qt::SkipEmptyParts);
     if (parts.isEmpty())
         return nullptr;
-    // 从根开始查找
+    // All segments but the last must be directories; the last is a data-item key
     WConfigViewer *current = this;
     for (int i = 0; i < parts.size(); ++i) {
         const QString &key = parts[i];
         if (i == parts.size() - 1) {
-            // 最后一层，查找配置项
             return current->getConfigData(key);
         } else {
-            // 中间层，查找子目录
             WConfigViewer *child = nullptr;
             for (WConfigViewer *c : std::as_const(current->m_children)) {
                 if (c->name() == key) {
@@ -137,6 +177,8 @@ bool WConfigViewer::addConfigData(WConfigDataBase *data, bool force) {
     return true;
 }
 bool WConfigViewer::removeConfigData(WConfigDataBase *data, bool force) {
+    if (!data)
+        return false;
     if(!force)if(data->isEffectivelyLocked())return false;
     return m_configData.removeOne(data);
 }
@@ -193,7 +235,7 @@ AcceptPolicy WConfigViewer::effectiveAcceptPolicy() const {
         return m_acceptPolicy;
     if (m_parent)
         return m_parent->effectiveAcceptPolicy();
-    return AcceptPolicy::REFUSE; // 根默认拒绝
+    return AcceptPolicy::REFUSE; // the root refuses by default
 }
 bool WConfigViewer::isEffectivelyLocked() const {
     if (isLocked())

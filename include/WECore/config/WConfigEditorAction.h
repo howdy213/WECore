@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -25,6 +25,8 @@
 
 namespace we::config {
 
+// Editor for Action items: renders the action as a push button; clicking it runs
+// the action's callback.
 class WE_EXPORT WConfigEditorAction : public WConfigEditorBase
 {
     Q_OBJECT

@@ -1,9 +1,9 @@
 /**
  * @file we.cpp
- * @brief Implementation file for the WE class.
+ * @brief Implementation of the WE global instance holder.
  * @author howdy213
- * @date 2026-1-30
- * @version 1.1.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -23,23 +23,19 @@
 #include "WECore/we/webase.h"
 namespace we {
 WEBase *WE::m_instance = nullptr;
-///
-/// \brief WE::init
-/// \param base
-/// \param type
-/// \return
-///
+
 bool WE::init(WEBase *base) {
-    if (!base)
+    if (!base) {
         return false;
-    if (m_instance != nullptr)
+    }
+    // The application owns exactly one WEBase. Re-initialisation is rejected
+    // so that inst() never changes underneath existing users.
+    if (m_instance != nullptr) {
         return false;
+    }
     m_instance = base;
     return true;
 }
-///
-/// \brief WE::inst
-/// \return
-///
+
 WEBase *WE::inst() { return m_instance; }
 } // namespace we

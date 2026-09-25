@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -45,7 +45,7 @@ public:
 
 private:
     double m_value = 0.0;
-    double m_original;
+    double m_original = 0.0;
 };
 
 } // namespace we::config

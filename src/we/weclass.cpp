@@ -2,8 +2,8 @@
  * @file weclass.cpp
  * @brief Implementation file for the WE class manager.
  * @author howdy213
- * @date 2026-05-04
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * @copyright Copyright 2025-2026 howdy213
  *
@@ -40,59 +40,35 @@ public:
     WEBase *base = nullptr;
 };
 
-/**
- * @brief Constructs a WEClass object.
- * @param base Pointer to the WEBase instance.
- */
 WEClass::WEClass(WEBase *base) {
     d = new WEClassPrivate;
     d->base = base;
 }
 
-/**
- * @brief Destroys the WEClass object.
- */
 WEClass::~WEClass() {
     delete d;
     d = nullptr;
 }
 
-/**
- * @brief Returns the configuration manager.
- * @return Pointer to the WMetaDocument instance managing configuration.
- */
+// Each accessor fetches a manager the WEBase stored under a well-known key,
+// cast back to its concrete type (see we::Consts::Public).
+
 WMetaDocument *WEClass::configManager() {
     return d->base->getWEBaseData()->getData<WMetaDocument *>(Public::Config);
 }
 
-/**
- * @brief Returns the path manager.
- * @return Pointer to the WPath instance managing file paths.
- */
 WPath *WEClass::pathManager() {
     return d->base->getWEBaseData()->getData<WPath *>(Public::Path);
 }
 
-/**
- * @brief Returns the plugin manager.
- * @return Pointer to the WPluginManager instance.
- */
 WPluginManager *WEClass::pluginManager() {
     return d->base->getWEBaseData()->getData<WPluginManager *>(Public::PManager);
 }
 
-/**
- * @brief Returns the widget manager.
- * @return Pointer to the WWidgetManager instance.
- */
 WWidgetManager *WEClass::widgetManager() {
     return d->base->getWEBaseData()->getData<WWidgetManager *>(Public::WManager);
 }
 
-/**
- * @brief Returns the service registry.
- * @return Pointer to the WServiceRegistry instance.
- */
 WServiceRegistry *WEClass::serviceRegistry() {
     return d->base->getWEBaseData()->getData<WServiceRegistry *>(
         Public::ServiceRegistry);

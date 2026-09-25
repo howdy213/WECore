@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -35,8 +35,7 @@ void WConfigEditorSelect::createEditor() {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(m_combo);
     setLayout(layout);
-    if (m_data) {
-        auto *selectData = static_cast<WConfigDataSelect *>(m_data);
+    if (auto *selectData = dynamic_cast<WConfigDataSelect *>(m_data)) {
         m_combo->addItems(selectData->options());
         m_combo->setCurrentText(m_data->getTemporary().toString());
         if (m_data->hasProperty(Property::ReadOnly))
@@ -44,19 +43,21 @@ void WConfigEditorSelect::createEditor() {
     }
     connect(m_combo, &QComboBox::currentTextChanged, this,
             [this](const QString &text) {
-                if (m_data) {
-            QString oldVal = m_data->getTemporary().toString();
-                    if (text != oldVal) {
-                m_data->setTemporary(text);
-                emit valueChanged();
-                    }
+                if (!m_data)
+                    return;
+                const QString oldVal = m_data->getTemporary().toString();
+                if (text != oldVal) {
+                    m_data->setTemporary(text);
+                    emit valueChanged();
                 }
-    });
+            });
 }
 
 void WConfigEditorSelect::setConfigData(WConfigDataBase *data) {
     m_data = data;
-    auto *selectData = static_cast<WConfigDataSelect *>(data);
+    auto *selectData = dynamic_cast<WConfigDataSelect *>(data);
+    if (!selectData)
+        return;
     QString temp = selectData->getTemporary().toString();
     m_combo->clear();
     m_combo->addItems(selectData->options());
@@ -74,5 +75,11 @@ WConfigDataSelect *WConfigEditorSelect::getData() {
 }
 
 WConfigDataBase *WConfigEditorSelect::configData() { return getData(); }
+
+// Caller-driven refresh: write the item's temporary value back to the combo box.
+void WConfigEditorSelect::refreshFromData() {
+    if (m_data && m_combo)
+        m_combo->setCurrentText(m_data->getTemporary().toString());
+}
 
 } // namespace we::config

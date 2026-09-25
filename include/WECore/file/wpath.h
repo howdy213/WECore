@@ -7,8 +7,8 @@
  * resolve relative paths against a base directory.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -43,83 +43,46 @@ class WPathPrivate;
 /**
  * @brief Utility for path operations related to modules and the application.
  *
- * WPath works with the WEBase and plugin manager to resolve file paths
- * and directories for the main executable and loaded plugins. Relative
- * paths can be turned into absolute paths using resolvePath().
+ * Resolves file paths and directories for the main executable and loaded
+ * plugins, and turns relative paths into absolute ones with resolvePath().
+ * The executable path is queried through the Win32 API, so WPath is
+ * Windows‑only.
  */
 class WE_EXPORT WPath
 {
     Q_DISABLE_COPY(WPath)
 
 public:
-    /**
-     * @brief Constructs a WPath instance.
-     * @param we  Optional pointer to WEBase; can be set later with setWEBase().
-     */
+    /// Constructs a WPath; @p we may also be supplied later via setWEBase().
     explicit WPath(WEBase *we = nullptr);
 
-    /// Destroys the instance. Private data is automatically cleaned up.
     virtual ~WPath();
 
-    /**
-     * @brief Sets or replaces the WEBase reference.
-     * @param base  Pointer to the application base.
-     */
+    /// Sets or replaces the WEBase used to look up plugin paths.
     void setWEBase(WEBase *base);
 
-    /**
-     * @brief Returns the full path of the current executable.
-     */
+    /// Full path of the current executable (Win32 GetModuleFileName).
     QString getModulePath() const;
 
-    /**
-     * @brief Returns the directory containing the current executable.
-     */
+    /// Directory containing the current executable, including the trailing '/'.
     QString getModuleFolder() const;
 
-    /**
-     * @brief Retrieves the file path of a plugin identified by its UUID.
-     * @param moduleId  The plugin UUID.
-     * @return The stored path, or an empty string if not found.
-     */
+    /// Path of the plugin identified by @p moduleId, or an empty string if unknown.
     QString getModulePath(const QUuid &moduleId) const;
 
-    /**
-     * @brief Retrieves the directory containing the plugin’s file.
-     * @param moduleId  The plugin UUID.
-     * @return The directory, or an empty string.
-     */
+    /// Directory containing the plugin's file, or an empty string.
     QString getModuleFolder(const QUuid &moduleId) const;
 
-    /**
-     * @brief Retrieves the file path of a plugin from its WPlugin instance.
-     * @param plugin  Pointer to the plugin.
-     * @return The stored path, or an empty string.
-     */
+    /// Path of @p plugin, or an empty string if @p plugin is null.
     QString getModulePath(WPlugin *plugin) const;
 
-    /**
-     * @brief Retrieves the directory containing the plugin’s file.
-     * @param plugin  Pointer to the plugin.
-     * @return The directory, or an empty string.
-     */
+    /// Directory containing the plugin's file, or an empty string.
     QString getModuleFolder(WPlugin *plugin) const;
 
-    /**
-     * @brief Extracts the directory part of a file path (ends with '/').
-     * @param path  A file path.
-     * @return The directory portion, e.g., "C:/folder/" from "C:/folder/file.exe".
-     */
+    /// Directory part of @p path, including the trailing '/'; empty if it has no '/'.
     QString splitPath(const QString &path) const;
 
-    /**
-     * @brief Resolves a possibly‑relative path @p des against @p cur.
-     * @param cur  Reference path (file or directory).
-     * @param des  Target path (absolute or relative).
-     * @return The absolute cleaned path.
-     *
-     * If @p cur is a file, its directory is used as the base.
-     */
+    /// Resolves @p des against @p cur; if @p cur is a file, its directory is used as the base.
     QString resolvePath(const QString &cur, const QString &des) const;
 
 private:

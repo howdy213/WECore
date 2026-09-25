@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -99,7 +99,7 @@ bool WConfigDataArray::addElement(const QVariant &element) {
 bool WConfigDataArray::setElement(int index, const QVariant &element) {
     if (index < 0 || index >= m_value.count())
         return false;
-    m_value[index] = element;
+    m_value[index] = convertVariantToType(element, elementType());
     return true;
 }
 

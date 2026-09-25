@@ -3,8 +3,8 @@
  * @brief Implementation of WServiceRegistry.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -22,47 +22,33 @@
  */
 #include "WECore/service/wserviceregistry.h"
 
-#include <QPointer>
 #include <QMap>
+#include <QPointer>
 
 namespace we {
 
 /**
- * @brief Private data for WServiceRegistry (d‑pointer pattern).
- *
- * Stores the internal map of service names to their request topics and
- * provider objects.
+ * @brief Private data for WServiceRegistry (d-pointer pattern).
  */
 class WServiceRegistryPrivate
 {
 public:
     /// Describes a single registered service.
     struct ServiceInfo {
-        QString requestTopic;         ///< Event bus topic for invoking the service.
-        QPointer<QObject> provider;  ///< Weak pointer to the provider QObject.
+        QString requestTopic;        ///< Event bus topic for invoking the service.
+        QPointer<QObject> provider;  ///< Weak pointer: cleared when the provider dies.
     };
 
-    /// Map from service name to its information.
-    QMap<QString, ServiceInfo> services;
+    QMap<QString, ServiceInfo> services; ///< Service name -> information.
 };
 
-
-// Construction / Destruction
-
-
-/// Constructs the registry with empty private data.
 WServiceRegistry::WServiceRegistry(QObject *parent)
     : QObject(parent)
     , d_ptr(new WServiceRegistryPrivate)
 {
 }
 
-/// Destructor. QScopedPointer frees the private data automatically.
 WServiceRegistry::~WServiceRegistry() = default;
-
-
-// Registration
-
 
 void WServiceRegistry::registerService(const QString &serviceName,
                                        const QString &requestTopic,
@@ -72,7 +58,7 @@ void WServiceRegistry::registerService(const QString &serviceName,
     if (serviceName.isEmpty() || requestTopic.isEmpty() || !provider)
         return;
 
-    // Replace an existing service with the same name.
+    // Replacing an existing name keeps the registry single-valued per service.
     if (d->services.contains(serviceName)) {
         unregisterService(serviceName);
     }
@@ -80,17 +66,13 @@ void WServiceRegistry::registerService(const QString &serviceName,
     WServiceRegistryPrivate::ServiceInfo info{requestTopic, provider};
     d->services.insert(serviceName, info);
 
-    // Automatically unregister when the provider is destroyed.
+    // Auto-unregister so a destroyed provider never leaves a stale entry.
     connect(provider, &QObject::destroyed, this, [this, serviceName]() {
         unregisterService(serviceName);
     });
 
     emit serviceRegistered(serviceName);
 }
-
-
-// Unregistration
-
 
 void WServiceRegistry::unregisterService(const QString &serviceName)
 {
@@ -99,10 +81,6 @@ void WServiceRegistry::unregisterService(const QString &serviceName)
         emit serviceUnregistered(serviceName);
     }
 }
-
-
-// Queries
-
 
 bool WServiceRegistry::hasService(const QString &serviceName) const
 {

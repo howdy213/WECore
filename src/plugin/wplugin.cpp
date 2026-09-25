@@ -6,8 +6,8 @@
  * implementations.
  *
  * @author howdy213
- * @date 2026-08-20
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -44,30 +44,29 @@ using namespace we::Consts;
 namespace we {
 
 /**
- * @brief Private implementation of WPlugin (d‑pointer pattern).
+ * @brief Private state of WPlugin (d-pointer pattern).
  *
- * Stores all internal state so that the public header can remain
- * stable across releases.
+ * doc holds the metadata. The DLL backend is owned through loader; the EXE
+ * backend is the wif virtual plugin. Both are released in unload().
  */
 class WPluginPrivate {
 public:
     WMetaDocument doc;                ///< Metadata store.
     WPluginManager *parent = nullptr; ///< Owning plugin manager.
     QPluginLoader *loader = nullptr;  ///< Qt plugin loader (DLL mode).
-    WPluginInterface *wif = nullptr;  ///< Plugin interface (DLL or EXE).
-    bool loaded = false;              ///< Whether the plugin component is loaded.
-    WPluginStateMachine *m_stateMachine = nullptr;
+    WPluginInterface *wif = nullptr;  ///< Interface of the EXE (virtual) backend.
+    bool loaded = false;              ///< Whether the backend is loaded.
+    WPluginStateMachine *m_stateMachine = nullptr; ///< Owned lifecycle tracker.
 
-    /// Describes the type of plugin backend.
+    /// Which backend is in use.
     enum LoadFileType {
         TYPE_DLL,   ///< Shared library loaded via QPluginLoader.
-        TYPE_EXE,   ///< External process treated as virtual plugin.
+        TYPE_EXE,   ///< External process wrapped by WVirtualPlugin.
         TYPE_OTHER, ///< Reserved for future backends.
         TYPE_NONE   ///< No backend selected.
     } type = TYPE_NONE;
 };
 
-/// Constructs a WPlugin and initialises default metadata.
 WPlugin::WPlugin(WPluginManager *parent) {
     d_ptr.reset(new WPluginPrivate);
     Q_D(WPlugin);
@@ -84,20 +83,18 @@ WPlugin::WPlugin(WPluginManager *parent) {
                           QRandomGenerator::system()->generate())));
     d->doc.setDefault(Plugin::Path, "");
 
-    // Initialize state machine
     d->m_stateMachine = new WPluginStateMachine(this);
 }
 
-/// Destructor. QScopedPointer automatically destroys WPluginPrivate.
+// d_ptr frees WPluginPrivate (and with it the state machine).
 WPlugin::~WPlugin() = default;
 
-/// Returns the owning plugin manager.
 WPluginManager *WPlugin::parent() const {
     const Q_D(WPlugin);
     return d->parent;
 }
 
-/// Loads configuration from a file and resolves relative paths.
+/// Resolves Plugin::RelativePath against @p filePath and stores the result.
 bool WPlugin::readConfig(const QString &filePath, QJsonObject config) {
     Q_D(WPlugin);
     if (!d->doc.load(QJsonDocument(config).toJson(), false))
@@ -111,17 +108,15 @@ bool WPlugin::readConfig(const QString &filePath, QJsonObject config) {
     return true;
 }
 
-/// Loads the plugin backend (DLL or EXE). Returns false if already loaded.
+// The state machine owns the sequence; every failure leaves the plugin in Error.
 bool WPlugin::load() {
     Q_D(WPlugin);
 
-    // Debug: Print current state before transition
     qDebug() << "WPlugin::load: Current state before transition:"
              << static_cast<int>(getState());
 
-    // Use state machine for loading
     if (!setState(PluginState::Loading)) {
-        qWarning("WPlugin::load: Cannot transition to loading state");
+        qWarning() << tr("WPlugin::load: Cannot transition to loading state");
         return false;
     }
 
@@ -139,12 +134,11 @@ bool WPlugin::load() {
                filepath.endsWith(QLatin1String(".bat"))) {
         loadResult = loadExe(filepath);
     } else {
-        qWarning("WPlugin::load: Unsupported plugin file type");
+        qWarning() << tr("WPlugin::load: Unsupported plugin file type");
         setState(PluginState::Error);
         return false;
     }
 
-    // Debug: Print load result and final state
     qDebug() << "WPlugin::load: Load result:" << loadResult
              << "Final state:" << static_cast<int>(getState());
 
@@ -157,38 +151,30 @@ bool WPlugin::load() {
     }
 }
 
-/// Unloads the plugin backend and frees all related resources.
+/// Unloads the backend and frees all related resources.
 bool WPlugin::unload() {
     Q_D(WPlugin);
 
-    // Use state machine for unloading
     if (!setState(PluginState::Unloading)) {
-        qWarning("WPlugin::unload: Cannot transition to unloading state");
+        qWarning() << tr("WPlugin::unload: Cannot transition to unloading state");
         return false;
     }
 
     bool ret = true;
 
-    // Let the manager handle its own bookkeeping first.
-    if (d->parent) {
-        // ret = d->parent->unloadPlugin(this);
-        // d->parent = nullptr;
+    WPluginInterface *iface = inst();
+    if (iface) {
+        WMessage msg;
+        iface->deinit(msg);
     }
 
-    WPluginInterface *iface =
-        qobject_cast<WPluginInterface *>(d->loader->instance());
-    WMessage msg;
-    iface->deinit(msg);
-
-    // Release DLL resources.
+    // Release the backend: unload a shared library, delete a virtual plugin.
     if (d->type == WPluginPrivate::TYPE_DLL && d->loader) {
         if (!d->loader->unload())
             ret = false;
         delete d->loader;
         d->loader = nullptr;
-    }
-    // Release EXE virtual plugin.
-    else if (d->type == WPluginPrivate::TYPE_EXE && d->wif) {
+    } else if (d->type == WPluginPrivate::TYPE_EXE && d->wif) {
         delete d->wif;
         d->wif = nullptr;
     }
@@ -196,30 +182,26 @@ bool WPlugin::unload() {
     d->loaded = false;
     d->type = WPluginPrivate::TYPE_NONE;
 
-    // Transition to unloaded state
     setState(PluginState::Unloaded);
     return ret;
 }
 
-/// Returns whether the plugin component is currently loaded.
 bool WPlugin::available() const {
     Q_D(const WPlugin);
     return d->loaded;
 }
 
-/// Retrieves a metadata value.
 QVariant WPlugin::getMetaData(const QString &key) const {
     Q_D(const WPlugin);
     return d->doc.get(key);
 }
 
-/// Checks whether a given metadata key exists.
 bool WPlugin::hasMetaData(const QString &key) const {
     Q_D(const WPlugin);
     return d->doc.hasArg(key);
 }
 
-/// Stores a metadata value, syncing it with the manager if present.
+// When registered, the manager may rewrite the value (e.g. to keep names unique).
 void WPlugin::setMetaData(const QString &key, const QVariant &value) {
     Q_D(WPlugin);
     QVariant stored = value;
@@ -228,7 +210,7 @@ void WPlugin::setMetaData(const QString &key, const QVariant &value) {
     d->doc.set(key, stored);
 }
 
-/// Loads a Qt plugin (DLL) using QPluginLoader.
+/// Loads a Qt plugin (DLL) and merges its embedded metadata into ours.
 bool WPlugin::loadDll(const QString &dllPath) {
     Q_D(WPlugin);
     if (!QLibrary::isLibrary(dllPath))
@@ -249,13 +231,14 @@ bool WPlugin::loadDll(const QString &dllPath) {
                 setMetaData(it.key(), it.value().toVariant());
             }
         } else {
-            qWarning("WPlugin::loadDll: Plugin does not implement WPluginInterface");
+            qWarning() << tr("WPlugin::loadDll: Plugin does not implement "
+                             "WPluginInterface");
             delete loader;
             loader = nullptr;
         }
     } else {
-        qWarning() << "WPlugin::loadDll: Failed to load" << dllPath << "-"
-                   << loader->errorString();
+        qWarning() << tr("WPlugin::loadDll: Failed to load %1 - %2")
+                          .arg(dllPath, loader->errorString());
         delete loader;
         loader = nullptr;
     }
@@ -264,7 +247,7 @@ bool WPlugin::loadDll(const QString &dllPath) {
     return d->loaded;
 }
 
-/// Loads an executable as a virtual plugin.
+/// Loads an executable as a virtual plugin (no QPluginLoader involved).
 bool WPlugin::loadExe(const QString &exePath) {
     Q_D(WPlugin);
     d->loader = nullptr;
@@ -276,7 +259,6 @@ bool WPlugin::loadExe(const QString &exePath) {
     vp->setFile(exePath);
     setType(QStringLiteral("exe"));
 
-    // Derive a display name from the file name.
     const QStringList parts = exePath.split(QChar('/'));
     if (!parts.isEmpty()) {
         const QString fileName = parts.last().split(QChar('.')).first();
@@ -287,7 +269,6 @@ bool WPlugin::loadExe(const QString &exePath) {
     return true;
 }
 
-/// Returns the plugin interface pointer (DLL or EXE virtual plugin).
 WPluginInterface *WPlugin::inst() {
     Q_D(WPlugin);
     switch (d->type) {
@@ -303,26 +284,22 @@ WPluginInterface *WPlugin::inst() {
     return nullptr;
 }
 
-/// Returns the plugin's metadata document.
 const WMetaDocument &WPlugin::getMetaDocument() const {
     Q_D(const WPlugin);
     return d->doc;
 }
 
-/// Gets the current state of the plugin.
 PluginState WPlugin::getState() const {
     const Q_D(WPlugin);
   return d->m_stateMachine ? d->m_stateMachine->currentState()
                              : PluginState::Unloaded;
 }
 
-/// Attempts to transition to a new state.
 bool WPlugin::setState(PluginState newState) {
     Q_D(WPlugin);
     return d->m_stateMachine && d->m_stateMachine->transitionTo(newState);
 }
 
-// -- Version --
 QString WPlugin::version() const {
     return getMetaData(Plugin::Version).toString();
 }
@@ -330,11 +307,9 @@ void WPlugin::setVersion(const QString &version) {
     setMetaData(Plugin::Version, version);
 }
 
-// -- Name --
 QString WPlugin::name() const { return getMetaData(Plugin::Name).toString(); }
 void WPlugin::setName(const QString &name) { setMetaData(Plugin::Name, name); }
 
-// -- Init --
 QString WPlugin::initArg() const {
     return getMetaData(Plugin::Init).toString();
 }
@@ -342,11 +317,9 @@ void WPlugin::setInitArg(const QString &initArg) {
     setMetaData(Plugin::Init, initArg);
 }
 
-// -- Path --
 QString WPlugin::path() const { return getMetaData(Plugin::Path).toString(); }
 void WPlugin::setPath(const QString &path) { setMetaData(Plugin::Path, path); }
 
-// -- RelativePath --
 QString WPlugin::relativePath() const {
     return getMetaData(Plugin::RelativePath).toString();
 }
@@ -354,11 +327,9 @@ void WPlugin::setRelativePath(const QString &relativePath) {
     setMetaData(Plugin::RelativePath, relativePath);
 }
 
-// -- Date --
 QString WPlugin::date() const { return getMetaData(Plugin::Date).toString(); }
 void WPlugin::setDate(const QString &date) { setMetaData(Plugin::Date, date); }
 
-// -- Author --
 QString WPlugin::author() const {
     return getMetaData(Plugin::Author).toString();
 }
@@ -366,15 +337,12 @@ void WPlugin::setAuthor(const QString &author) {
     setMetaData(Plugin::Author, author);
 }
 
-// -- Desc --
 QString WPlugin::desc() const { return getMetaData(Plugin::Desc).toString(); }
 void WPlugin::setDesc(const QString &desc) { setMetaData(Plugin::Desc, desc); }
 
-// -- Type --
 QString WPlugin::type() const { return getMetaData(Plugin::Type).toString(); }
 void WPlugin::setType(const QString &type) { setMetaData(Plugin::Type, type); }
 
-// -- MainWidget --
 bool WPlugin::mainWidget() const {
     return getMetaData(Plugin::MainWidget).toBool();
 }
@@ -382,17 +350,14 @@ void WPlugin::setMainWidget(bool mainWidget) {
     setMetaData(Plugin::MainWidget, mainWidget);
 }
 
-// -- Autorun --
 bool WPlugin::autorun() const { return getMetaData(Plugin::Autorun).toBool(); }
 void WPlugin::setAutorun(bool autorun) {
     setMetaData(Plugin::Autorun, autorun);
 }
 
-// -- Admin --
 bool WPlugin::admin() const { return getMetaData(Plugin::Admin).toBool(); }
 void WPlugin::setAdmin(bool admin) { setMetaData(Plugin::Admin, admin); }
 
-// -- Depends --
 QStringList WPlugin::depends() const {
     return getMetaData(Plugin::Depends).toStringList();
 }
@@ -400,7 +365,6 @@ void WPlugin::setDepends(const QStringList &depends) {
     setMetaData(Plugin::Depends, depends);
 }
 
-// -- DependsPath --
 QStringList WPlugin::dependsPath() const {
     return getMetaData(Plugin::DependsPath).toStringList();
 }
@@ -408,7 +372,6 @@ void WPlugin::setDependsPath(const QStringList &dependsPath) {
     setMetaData(Plugin::DependsPath, dependsPath);
 }
 
-// -- LocalUuid --
 QUuid WPlugin::localUuid() const {
     return QUuid(getMetaData(Plugin::LocalUuid).toString());
 }
@@ -416,7 +379,6 @@ void WPlugin::setLocalUuid(const QUuid &uuid) {
     setMetaData(Plugin::LocalUuid, uuid.toString());
 }
 
-// -- Uuid --
 QUuid WPlugin::uuid() const {
     return QUuid(getMetaData(Plugin::Uuid).toString());
 }
@@ -424,7 +386,6 @@ void WPlugin::setUuid(const QUuid &uuid) {
     setMetaData(Plugin::Uuid, uuid.toString());
 }
 
-// -- ConfigPath --
 QString WPlugin::configPath() const {
     return getMetaData(Plugin::ConfigPath).toString();
 }

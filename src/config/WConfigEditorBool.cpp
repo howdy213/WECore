@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -45,7 +45,7 @@ void WConfigEditorBool::createEditor()
 void WConfigEditorBool::setConfigData(WConfigDataBase* data)
 {
     m_data = data;
-    auto* boolData = static_cast<WConfigDataBool*>(data);
+    auto* boolData = dynamic_cast<WConfigDataBool*>(data);
     if (boolData) m_boolCheck->setChecked(boolData->toVariant().toBool());
 }
 
@@ -61,5 +61,10 @@ WConfigDataBool* WConfigEditorBool::getData()
 }
 
 WConfigDataBase* WConfigEditorBool::configData() { return getData(); }
+
+void WConfigEditorBool::refreshFromData() {
+    if (m_data && m_boolCheck)
+        m_boolCheck->setChecked(m_data->getTemporary().toBool());
+}
 
 } // namespace we::config

@@ -2,12 +2,9 @@
  * @file wpluginstatemachine.h
  * @brief Plugin state machine for managing plugin lifecycle states.
  *
- * Provides a state machine implementation to manage the different states
- * a plugin can be in: unloaded, loading, loaded, unloading, error, etc.
- *
  * @author howdy213
- * @date 2026-08-19
- * @version 1.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -33,23 +30,23 @@ namespace we {
 
 class WPlugin;
 
-/**
- * @brief Plugin state enumeration.
- */
+/// Lifecycle states of a plugin.
 enum class PluginState {
-    Unloaded,    ///< Plugin is not loaded
-    Loading,     ///< Plugin is being loaded
-    Loaded,      ///< Plugin is successfully loaded and initialized
-    Unloading,   ///< Plugin is being unloaded
-    Error,       ///< Plugin is in error state
-    Disabled     ///< Plugin is disabled
+    Unloaded,  ///< No backend loaded; the initial state.
+    Loading,   ///< A load is in progress.
+    Loaded,    ///< Backend loaded and initialised.
+    Unloading, ///< An unload is in progress.
+    Error,     ///< The last load/unload attempt failed.
+    Disabled   ///< Plugin disabled by the user or configuration.
 };
 
 /**
- * @brief Plugin state machine for managing plugin lifecycle.
+ * @brief Synchronous state machine guarding plugin lifecycle transitions.
  *
- * This class provides a synchronous state machine implementation to manage the
- * different states a plugin can be in during its lifecycle.
+ * Transitions follow a fixed table; an illegal transition leaves the current
+ * state untouched and is reported through errorOccurred(). The implementation
+ * is synchronous, so the goTo* signals exist only for API compatibility and
+ * are never emitted.
  */
 class WE_EXPORT WPluginStateMachine : public QObject {
     Q_OBJECT
@@ -57,59 +54,39 @@ class WE_EXPORT WPluginStateMachine : public QObject {
 
 public:
     /**
-     * @brief Constructs a plugin state machine.
-     * @param parent The parent plugin instance.
+     * @brief Constructs the machine in the Unloaded state.
+     * @param parent Owning WPlugin. The QObject parent is set to
+     *               parent->parent() (the plugin manager) so the machine lives
+     *               as long as the manager; @p parent may be null.
      */
     explicit WPluginStateMachine(WPlugin *parent = nullptr);
 
-    /**
-     * @brief Destroys the plugin state machine.
-     */
     ~WPluginStateMachine() override;
 
-    /**
-     * @brief Gets the current state of the plugin.
-     * @return The current plugin state.
-     */
     PluginState currentState() const;
 
-    /**
-     * @brief Attempts to transition to a new state.
-     * @param newState The target state.
-     * @return true if transition was successful, false if invalid.
-     */
+    /// Attempts a transition; false (state unchanged) if it is not allowed.
     bool transitionTo(PluginState newState);
 
-    /**
-     * @brief Gets the state as a string representation.
-     * @param state The state to convert.
-     * @return String representation of the state.
-     */
+    /// Localised, user-facing name of @p state, e.g. for labels in the UI.
     static QString stateToString(PluginState state);
 
     /**
-     * @brief Gets the state from a string representation.
-     * @param stateStr The string representation.
-     * @return The corresponding state.
+     * @brief Parses a state name.
+     * @return The matching state, or Unloaded if unrecognised.
+     * @note Only the non-localised English names are recognised, so this does
+     *       not round-trip the output of stateToString() in translated builds.
      */
     static PluginState stringToState(const QString &stateStr);
 
 signals:
-    /**
-     * @brief Signal emitted when the plugin state changes.
-     * @param oldState The previous state.
-     * @param newState The new state.
-     */
+    /// Emitted after a successful transition.
     void stateChanged(we::PluginState oldState, PluginState newState);
 
-    /**
-     * @brief Signal emitted when an error occurs in the state machine.
-     * @param error The error message.
-     * @param state The state where the error occurred.
-     */
+    /// Emitted when a transition is rejected; @p error is already localised.
     void errorOccurred(const QString &error, we::PluginState state);
 
-    // Signals used for internal transition triggering (kept for API compatibility, but not emitted in synchronous mode)
+    // Never emitted (synchronous implementation); kept for API compatibility.
     void goToLoading();
     void goToLoaded();
     void goToUnloading();
@@ -118,10 +95,6 @@ signals:
     void goToDisabled();
 
 private:
-    /**
-     * @brief Updates the current state and emits stateChanged signal.
-     * @param newState The new state to set.
-     */
     void setCurrentState(PluginState newState);
 
 private:

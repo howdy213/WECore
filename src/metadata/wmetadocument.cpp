@@ -3,8 +3,8 @@
  * @brief Implementation of WMetaDocument.
  *
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -40,7 +40,7 @@ bool WMetaDocument::load(const QString &source, bool isPath)
     if (isPath) {
         QFile file(source);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            qWarning() << "WMetaDocument::load: Failed to open file:" << source;
+            qWarning() << tr("WMetaDocument::load: Failed to open file:") << source;
             return false;
         }
         QTextStream in(&file);
@@ -54,7 +54,7 @@ bool WMetaDocument::load(const QString &source, bool isPath)
     QJsonParseError parseError;
     QJsonDocument doc = QJsonDocument::fromJson(jsonText.toUtf8(), &parseError);
     if (parseError.error != QJsonParseError::NoError) {
-        qWarning() << "WMetaDocument::load: JSON parse error at offset"
+        qWarning() << tr("WMetaDocument::load: JSON parse error at offset")
                    << parseError.offset << ":" << parseError.errorString();
         return false;
     }
@@ -80,7 +80,7 @@ bool WMetaDocument::save(const QString &filePath) const
     QJsonDocument doc(root);
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "WMetaDocument::save: Failed to open file for writing:" << filePath;
+        qWarning() << tr("WMetaDocument::save: Failed to open file for writing:") << filePath;
         return false;
     }
     file.write(doc.toJson(QJsonDocument::Indented));

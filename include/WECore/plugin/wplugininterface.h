@@ -2,12 +2,9 @@
  * @file wplugininterface.h
  * @brief Abstract plugin interface definition.
  *
- * Every plugin that is loaded by the WPluginManager must implement
- * this interface and register it with Q_INTERFACES().
- *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -31,53 +28,50 @@
 #include "WECore/def/wedef.h"
 
 /**
- * @brief The interface that all plugins must implement.
+ * @brief The interface that every plugin must implement.
  *
- * Provides the lifecycle hooks init(), recMsg() and deinit() that
- * the plugin manager calls during loading, messaging and unloading.
+ * Provides the lifecycle hooks init(), recMsg() and deinit() that the plugin
+ * manager calls while loading, messaging and unloading.
  *
- * @note Implementors must add `Q_INTERFACES(WPluginInterface)` to their
- *       plugin class and export it using `Q_PLUGIN_METADATA`.
+ * @note Implementations must add `Q_INTERFACES(WPluginInterface)` and export
+ *       the class with `Q_PLUGIN_METADATA`.
  */
 class WPluginInterface
 {
     Q_DISABLE_COPY(WPluginInterface)
 
 public:
-    /// Default constructor.
     WPluginInterface() = default;
 
-    /// Virtual destructor for safe polymorphic deletion.
     virtual ~WPluginInterface() = default;
 
     /**
      * @brief Called once after the plugin has been loaded.
-     * @param msg  Message object that can carry initialisation data.
-     * @return @c true if the plugin initialised successfully;
-     *         otherwise @c false, which will cause unloading.
+     * @param msg Message carrying initialisation data.
+     * @return true if the plugin initialised successfully; false makes the
+     *         manager unload it again.
      */
     virtual bool init(we::WMessage &msg) = 0;
 
     /**
      * @brief Receives a runtime message from the plugin manager.
-     * @param msg The message to process (may be modified by the plugin).
+     * @param msg Message to process; may be modified by the plugin.
      *
-     * This function is the primary communication channel and may be
-     * called at any time while the plugin is loaded.
+     * The primary communication channel; may be called at any time while the
+     * plugin is loaded.
      */
     virtual void recMsg(we::WMessage &msg) = 0;
 
     /**
      * @brief Called when the plugin is about to be unloaded.
-     * @param msg  Message object for passing shutdown status back.
-     * @return @c true if the plugin successfully cleaned up;
-     *         @c false if the plugin cannot be unloaded yet.
+     * @param msg Message for passing the shutdown status back.
+     * @return true if cleanup succeeded; false if the plugin cannot be
+     *         unloaded yet.
      */
     virtual bool deinit(we::WMessage &msg) = 0;
 };
 
-/// Unique identifier for the WPluginInterface.
-/// Used by Qt's meta‑object system to recognise the interface.
+/// Interface IID; must match Q_DECLARE_INTERFACE and Q_PLUGIN_METADATA.
 #define WPluginInterface_iid "QPlugins.WPluginManager.WPluginInterface"
 
 Q_DECLARE_INTERFACE(WPluginInterface, WPluginInterface_iid)

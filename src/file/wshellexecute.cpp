@@ -3,8 +3,8 @@
  * @brief Implementation of ShellRunnable and WShellExecute.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -31,11 +31,7 @@
 
 namespace we {
 
-/**
- * @brief Private data for ShellRunnable.
- *
- * Stores the shell operation parameters.
- */
+/// Shell operation parameters captured by ShellRunnable.
 class ShellRunnablePrivate
 {
 public:
@@ -78,6 +74,7 @@ void ShellRunnable::execute(const QString &file, const QString &operation,
     const std::wstring wParams    = params.toStdWString();
     const std::wstring wDir       = workingDir.toStdWString();
 
+    // Fire-and-forget: the HINSTANCE result is intentionally not checked.
     [[maybe_unused]] HINSTANCE inst =
         ShellExecuteW(nullptr, wOperation.c_str(), wFile.c_str(),
                       wParams.c_str(), wDir.c_str(), SW_NORMAL);

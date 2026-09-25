@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -34,22 +34,22 @@ WConfig::~WConfig() {}
 
 bool WConfig::initialize(const QString &configFile,
                          WConfigTemplate *configTemplate) {
-    m_currentFilePath = configFile;
+    auto *storage = new WConfigFileStorage(configFile);
+    m_storage.reset(storage);
     if (configTemplate) {
         m_document->setTemplate(configTemplate);
     }
-    bool ok = m_document->load(configFile);
-    return ok;
+    return storage->load(m_document);
 }
 
 bool WConfig::initialize(QSettings* settings, WConfigTemplate* configTemplate) {
     if (!settings) return false;
-    m_settings = settings;
-    m_currentFilePath.clear();  // 清空文件路径，避免混淆
+    auto *storage = new WConfigSettingsStorage(settings);
+    m_storage.reset(storage);
     if (configTemplate) {
         m_document->setTemplate(configTemplate);
     }
-    return m_document->loadFromSettings(settings);
+    return storage->load(m_document);
 }
 
 QVariant WConfig::getValueDirect(const QString &path) const {
@@ -105,6 +105,24 @@ bool WConfig::hasProperty(const QString &path, Property prop) const {
     return data ? data->hasProperty(prop) : false;
 }
 
+bool WConfig::setItemProperty(const QString &path, Property prop, bool on) {
+    QWriteLocker locker(&m_lock);
+    WConfigDataBase *data = m_document->root()->findConfigData(path);
+    if (!data)
+        return false;
+    data->setPropertyRuntime(prop, on);
+    emit configChanged(data);
+    return true;
+}
+
+bool WConfig::setItemReadOnly(const QString &path, bool on) {
+    return setItemProperty(path, Property::ReadOnly, on);
+}
+
+bool WConfig::setItemRestartRequired(const QString &path, bool on) {
+    return setItemProperty(path, Property::RestartRequired, on);
+}
+
 QSharedPointer<WConfigItemRef> WConfig::createItemRef(const QString &path) {
     WConfigDataBase *data = m_document->root()->findConfigData(path);
     if (!data)
@@ -120,21 +138,12 @@ QSharedPointer<WConfigDirRef> WConfig::createDirRef(const QString &path) {
 }
 
 bool WConfig::save() {
-    // 优先使用 QSettings 模式
-    if (m_settings) {
-        m_lastSaveErrors.clear();
-        if (!m_document->saveToSettings(m_settings)) {
-            m_lastSaveErrors << tr("Failed to write to QSettings");
-            return false;
-        }
-        m_document->syncToAllPersistent();
-        m_hasRestartRequiredChanges = false;
-        return true;
-    }
-    // 否则使用文件模式
-    if (m_currentFilePath.isEmpty()) return false;
     m_lastSaveErrors.clear();
-    if (!m_document->save(m_currentFilePath, m_lastSaveErrors)) {
+    if (!m_storage || !m_storage->isReady()) {
+        m_lastSaveErrors << tr("No storage backend is configured");
+        return false;
+    }
+    if (!m_storage->save(m_document, m_lastSaveErrors)) {
         return false;
     }
     m_document->syncToAllPersistent();
@@ -147,11 +156,18 @@ bool WConfig::saveAs(const QString &filePath) {
         return false;
     m_lastSaveErrors.clear();
 
-    if (!m_document->save(filePath, m_lastSaveErrors)) {
+    // Save-as always writes to a file, regardless of whether the current backend is QSettings
+    WConfigFileStorage target(filePath);
+    if (!target.save(m_document, m_lastSaveErrors)) {
         return false;
     }
 
-    m_currentFilePath = filePath;
+    // Only switch the target path when the current backend is a file; in QSettings
+    // mode save() still writes back to the original QSettings
+    if (auto *fileStorage = dynamic_cast<WConfigFileStorage *>(m_storage.get())) {
+        fileStorage->setFilePath(filePath);
+    }
+
     m_document->syncToAllPersistent();
     m_hasRestartRequiredChanges = false;
     return true;
@@ -162,16 +178,15 @@ void WConfig::resetToDefaults() {
     if (!temp)
         return;
 
-    // 清除所有现有数据
+    // force=true: a reset overrides locks, then the template is re-applied
     QWriteLocker locker(&m_lock);
     m_document->clearViewer(m_document->root(), true);
     temp->applyTo(m_document->root());
     m_document->syncToAllPersistent();
-    if (!m_currentFilePath.isEmpty()) {
-        m_lastSaveErrors.clear();
-        if (!m_document->save(m_currentFilePath, m_lastSaveErrors)) {
-            qWarning() << "WConfig::resetToDefaults: failed to save after reset";
-        }
+    // Persist immediately so the reset survives in both file and QSettings modes
+    if (!save()) {
+        qWarning() << "WConfig::resetToDefaults: failed to save after reset"
+                   << m_lastSaveErrors;
     }
 
     m_hasRestartRequiredChanges = false;

@@ -2,8 +2,8 @@
  * @file webase.h
  * @brief Header file for the WE base class.
  * @author howdy213
- * @date 2026-05-04
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * @copyright Copyright 2025-2026 howdy213
  *
@@ -24,7 +24,7 @@
 #include <QObject>
 #include <QSharedPointer>
 
-#include "WECore/Def/wedef.h"
+#include "WECore/def/wedef.h"
 #include "WECore/we/webasedata.h"
 #include "WECore/we/weclass.h"
 
@@ -32,7 +32,11 @@ namespace we {
 class WEBasePrivate;
 /**
  * @class WEBase
- * @brief Base class for the WE system.
+ * @brief Application base: owns the WEClass manager factory and the
+ *        WEBaseData container, plus a free-form class name.
+ *
+ * WEBase is the object installed in WE's global slot. It is not a QObject;
+ * the WEClass and WEBaseData instances it hands out are shared-ownership.
  */
 class WE_EXPORT WEBase {
 public:

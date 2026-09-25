@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -18,6 +18,8 @@
  * limitations under the License.
  */
 #include "WECore/config/WConfigDef.h"
+#include "WECore/config/WConfigCustomType.h"
+#include "WECore/config/WConfigDataCustom.h"
 #include "WECore/config/WConfigDataDef.h"
 #include <QMetaType>
 
@@ -141,8 +143,26 @@ WConfigDataBase *createDataByType(DataType type, const QString &key,
         return data;
     }
     default:
-    return nullptr;
+        return nullptr;
     }
+}
+
+WConfigDataBase *createCustomData(const QString &key, const QString &typeName,
+                                  const QVariant &defaultValue,
+                                  const WConfigItemInfo &info,
+                                  WConfigViewer *parent) {
+    if (typeName.isEmpty() ||
+        !WConfigCustomTypeRegistry::instance().hasType(typeName))
+        return nullptr;
+    auto *data = new WConfigDataCustom;
+    data->init(key, typeName, {}, Properties(), parent);
+    data->setInfo(info);
+    if (defaultValue.isValid() || info.defaultValue().isValid()) {
+        QVariant dflt = defaultValue.isValid() ? defaultValue
+                                               : info.defaultValue();
+        data->setTemporary(dflt);
+    }
+    return data;
 }
 
 WConfigDataBase *createDataFromVariant(const QString &key, const QVariant &value, WConfigViewer *parent)
@@ -204,6 +224,11 @@ WConfigDataBase *createDataFromVariant(const QString &key, const QVariant &value
         if (!list.isEmpty()) {
             elemType = inferDataTypeFromVariant(list.first());
         }
+        // Keep this in sync with createDataByType: fall back to String when the element
+        // type cannot be inferred, otherwise elementType() would be None and newly
+        // added elements would have no default value
+        if (elemType == DataType::None)
+            elemType = DataType::String;
         arr->init(key, list, elemType, Properties(), parent);
         newData = arr;
         break;

@@ -3,12 +3,9 @@
  * @brief Plugin base class providing loading, unloading, and metadata
  * management.
  *
- * WPlugin is a non‑QObject class that represents a single plugin. It manages
- * either a dynamically loaded library (DLL) or an external executable (EXE).
- *
  * @author howdy213
- * @date 2026-08-20
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -27,189 +24,146 @@
 #ifndef WPLUGIN_H
 #define WPLUGIN_H
 
+#include <QCoreApplication>
 #include <QScopedPointer>
 #include <QString>
 #include <QStringList>
 #include <QUuid>
 #include <QVariant>
 
-#include "WECore/Def/wedef.h"
+#include "WECore/def/wedef.h"
 #include "WECore/plugin/wplugininterface.h"
 #include "WECore/plugin/wpluginstatemachine.h"
 
 namespace we {
 
-class WPluginManager; ///< Forward declaration of the plugin manager.
+class WPluginManager;
 class WPluginPrivate;
 
 /**
  * @brief Represents a single plugin with its metadata and loading state.
  *
- * WPlugin stores plugin configuration (metadata) and controls the
- * life‑cycle of the actual plugin component. The component can be
- * a Qt plugin (DLL/dylib) loaded via QPluginLoader, or an executable
- * launched as a virtual plugin.
+ * Not a QObject. The backend is either a Qt plugin (DLL/dylib) loaded through
+ * QPluginLoader or a WVirtualPlugin that wraps an external executable (EXE).
+ * Metadata lives in a WMetaDocument and is kept in sync with the owning
+ * WPluginManager, which also enforces unique display names.
  */
 class WE_EXPORT WPlugin {
     Q_DISABLE_COPY(WPlugin)
 
 public:
     /**
-   * @brief Constructs a plugin instance.
-   * @param parent The owning WPluginManager (must not be null after
-   * construction).
-   */
+     * @brief Constructs a plugin.
+     * @param parent Owning manager. May be null, but load() then fails.
+     */
     explicit WPlugin(WPluginManager *parent);
 
-    /// Destroys the plugin and releases all resources.
     virtual ~WPlugin();
 
+    /// Owning manager, or null if none was supplied.
     WPluginManager *parent() const;
 
     /**
-   * @brief Reads plugin configuration from a file.
-   * @param filePath The root path used to resolve relative plugin paths.
-   * @param config   The full path to the configuration file.
-   * @return @c true if the configuration was loaded successfully.
-   */
+     * @brief Loads metadata from an already-parsed configuration object.
+     * @param filePath Root directory used to resolve the relative plugin path.
+     * @param config   Parsed configuration object.
+     *
+     * Stores the resolved absolute path in Plugin::Path and remembers
+     * @p filePath as Plugin::ConfigPath.
+     */
     bool readConfig(const QString &filePath, QJsonObject config);
 
     /**
-   * @brief Loads the actual plugin component (library or executable).
-   * @return @c true if loading succeeded.
-   */
+     * @brief Loads the backend (DLL or EXE) through the state machine.
+     * @return false if the Loading transition is rejected, the plugin has no
+     *         manager, or the file type is unsupported.
+     */
     bool load();
 
-    /**
-   * @brief Unloads the plugin component and frees related resources.
-   * @return @c true if the operation finished without errors.
-   */
+    /// Unloads the backend and releases the library / interface resources.
     bool unload();
 
-    /**
-   * @brief Indicates whether the plugin is currently loaded.
-   * @return @c true if the plugin is in a loaded state.
-   */
+    /// Whether the backend is currently loaded.
     bool available() const;
 
-    /**
-   * @brief Retrieves a metadata value.
-   * @param key The metadata key.
-   * @return The value associated with @p key, or a default-constructed
-   * QVariant.
-   */
+    /// Metadata value for @p key; a default-constructed QVariant if absent.
     QVariant getMetaData(const QString &key) const;
 
-    /**
-   * @brief Checks whether a metadata key exists.
-   * @param key The metadata key.
-   * @return @c true if the key exists.
-   */
     bool hasMetaData(const QString &key) const;
 
-    /**
-   * @brief Sets a metadata value.
-   * @param key   The metadata key.
-   * @param value The value to store.
-   *
-   * If the plugin is registered with a plugin manager, the manager's
-   * persistent storage is also updated.
-   */
+    /// Stores metadata; routed through the manager when one is set.
     void setMetaData(const QString &key, const QVariant &value);
 
-    /**
-   * @brief Returns a pointer to the plugin interface.
-   * @return A WPluginInterface pointer, or @c nullptr if the plugin is not
-   *         loaded or does not provide a valid interface.
-   */
+    /// Plugin interface, or null when not loaded or not implementing it.
     WPluginInterface *inst();
 
-    /**
-   * @brief Returns the plugin's metadata document.
-   * @return A WMetaDocument object.
-   */
     const WMetaDocument &getMetaDocument() const;
 
-    /**
-   * @brief Gets the current state of the plugin.
-   * @return The current plugin state.
-   */
     PluginState getState() const;
 
-    /**
-   * @brief Attempts to transition to a new state.
-   * @param newState The target state.
-   * @return true if transition was successful, false otherwise.
-   */
+    /// Requests a state transition; false if the transition is invalid.
     bool setState(PluginState newState);
 
-    // the plugin version string.
     QString version() const;
     void setVersion(const QString &version);
 
-    // the plugin display name.
     QString name() const;
     void setName(const QString &name);
 
-    // the initialization arguments
+    /// Initialization arguments passed to the plugin.
     QString initArg() const;
     void setInitArg(const QString &initArg);
 
-    // the absolute path to the plugin binary.
+    /// Absolute path to the plugin binary.
     QString path() const;
     void setPath(const QString &path);
 
-    // the relative path (as stored in configuration).
+    /// Path as stored in the configuration.
     QString relativePath() const;
     void setRelativePath(const QString &relativePath);
 
-    // the plugin build/creation date.
     QString date() const;
     void setDate(const QString &date);
 
-    // the plugin author.
     QString author() const;
     void setAuthor(const QString &author);
 
-    // the plugin description.
     QString desc() const;
     void setDesc(const QString &desc);
 
-    // the plugin type (e.g. "dll" or "exe").
+    /// Plugin backend type, e.g. "dll" or "exe".
     QString type() const;
     void setType(const QString &type);
 
-    // whether the plugin provides a main widget.
     bool mainWidget() const;
     void setMainWidget(bool mainWidget);
 
-    // whether the plugin should be auto‑started. */
     bool autorun() const;
     void setAutorun(bool autorun);
 
-    // whether the plugin requires administrator privileges.
     bool admin() const;
     void setAdmin(bool admin);
 
-    // list of plugin dependencies (by UUID or name).
+    /// Plugin dependencies, identified by UUID or name.
     QStringList depends() const;
     void setDepends(const QStringList &depends);
 
-    // the list of dependency search paths.
+    /// Search paths used to resolve dependencies.
     QStringList dependsPath() const;
     void setDependsPath(const QStringList &dependsPath);
 
-    // the local UUID (assigned by the manager).
+    /// Instance UUID assigned by the manager (not the plugin's own UUID).
     QUuid localUuid() const;
     void setLocalUuid(const QUuid &uuid);
 
-    // plugin's own UUID.
+    /// UUID declared by the plugin itself.
     QUuid uuid() const;
     void setUuid(const QUuid &uuid);
 
-    // path to the configuration file.
     QString configPath() const;
     void setConfigPath(const QString &configPath);
+
+    Q_DECLARE_TR_FUNCTIONS(WPlugin)
 
 private:
     bool loadDll(const QString &dllPath);

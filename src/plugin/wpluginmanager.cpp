@@ -5,8 +5,8 @@
  * Contains the private data class and all method definitions.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -40,28 +40,24 @@ using namespace we::Consts;
 namespace we {
 
 /**
- * @brief Private data of WPluginManager (d‑pointer pattern).
- *
- * Stores the main plugin registry and keeps internal state hidden
- * from the public header.
+ * @brief Private state of WPluginManager (d-pointer pattern).
  */
 class WPluginManagerPrivate {
 public:
-    /// Maps plugin UUID to the plugin instance.
+    /// Registry: instance UUID -> plugin. The manager does not own the plugins.
     QHash<QUuid, WPlugin *> plugins;
 };
 
 // Construction / Destruction
-/// Creates an empty manager.
+
 WPluginManager::WPluginManager(QObject *parent)
     : QObject(parent), d_ptr(new WPluginManagerPrivate) {}
 
-/// Destructor. The QScopedPointer automatically deletes the private data.
-/// Plugins should have been unloaded before destruction.
+// d_ptr frees the registry only; WPlugin instances are owned by the caller.
 WPluginManager::~WPluginManager() = default;
 
 // Plugin registration
-/// Registers a plugin, assigning a unique ID and ensuring a unique name.
+
 bool WPluginManager::addPlugin(WPlugin *plugin) {
     Q_D(WPluginManager);
     if (!plugin)
@@ -82,25 +78,26 @@ bool WPluginManager::addPlugin(WPlugin *plugin) {
 }
 
 // Loading / Unloading
-/// Loads a plugin's backend. Returns false if the plugin is not registered.
+
 bool WPluginManager::loadPlugin(WPlugin *plugin) {
     Q_D(WPluginManager);
     if (!plugin) {
-        qWarning() << "WPluginManager::loadPlugin: Plugin is null";
+        qWarning() << tr("WPluginManager::loadPlugin: Plugin is null");
         return false;
     }
 
     QUuid localUuid = plugin->localUuid();
     if (!d->plugins.contains(localUuid)) {
-        qWarning() << "WPluginManager::loadPlugin: Plugin not found in registry:"
-                   << localUuid;
+        qWarning() << tr("WPluginManager::loadPlugin: Plugin not found in "
+                         "registry: %1")
+                          .arg(localUuid.toString());
         return false;
     }
 
     if (plugin->available()) {
         qDebug() << "WPluginManager::loadPlugin: Plugin already loaded:"
                  << plugin->name();
-        return true; // Already loaded
+        return true;
     }
 
     // TODO: Check plugin dependencies before loading.
@@ -109,7 +106,6 @@ bool WPluginManager::loadPlugin(WPlugin *plugin) {
     return result;
 }
 
-/// Unloads a specific plugin and removes it from the registry.
 bool WPluginManager::unloadPlugin(WPlugin *plugin) {
     Q_D(WPluginManager);
     if (!plugin)
@@ -126,11 +122,9 @@ bool WPluginManager::unloadPlugin(WPlugin *plugin) {
     if (!it.value()->unload())
         return false;
 
-    // d->plugins.erase(it);
     return true;
 }
 
-/// Unloads a plugin but keeps it in the registry (hot unload).
 bool WPluginManager::hotUnloadPlugin(WPlugin *plugin) {
     Q_D(WPluginManager);
     if (!plugin)
@@ -144,11 +138,10 @@ bool WPluginManager::hotUnloadPlugin(WPlugin *plugin) {
     if (it == d->plugins.end())
         return false;
 
-    // Only unload the plugin, don't remove from registry
     return it.value()->unload();
 }
 
-/// Unloads every plugin. Uses a list of UUIDs to safely iterate while erasing.
+// Snapshot the keys first: erasing while iterating would invalidate iterators.
 void WPluginManager::unloadAllPlugins() {
     Q_D(WPluginManager);
     const QVector<QUuid> ids = d->plugins.keys().toVector();
@@ -162,8 +155,7 @@ void WPluginManager::unloadAllPlugins() {
 }
 
 // Plugin initialisation
-/// Initialises a plugin, setting up widget integration and invoking the
-/// callback.
+
 bool WPluginManager::initPlugin(WPlugin *plugin, InitDataProc proc) {
     Q_D(WPluginManager);
     if (!plugin)
@@ -175,7 +167,7 @@ bool WPluginManager::initPlugin(WPlugin *plugin, InitDataProc proc) {
 
     const QString type = plugin->type();
 
-    // EXE plugins may skip initialisation if the "Init" key is "default".
+    // EXE plugins may opt out of initialisation by setting "Init" to "default".
     if (type == QLatin1String("exe")) {
         const QString initFlag = plugin->initArg();
         if (initFlag == QLatin1String("default"))
@@ -205,7 +197,7 @@ bool WPluginManager::initPlugin(WPlugin *plugin, InitDataProc proc) {
 }
 
 // Queries
-/// Returns all plugins matching a key/value metadata pair.
+
 QVector<QUuid> WPluginManager::getPluginByAttr(const QString &key,
                                                const QVariant &value) const {
     Q_D(const WPluginManager);
@@ -217,32 +209,28 @@ QVector<QUuid> WPluginManager::getPluginByAttr(const QString &key,
     return result;
 }
 
-/// Finds a plugin UUID by name (first match).
 QUuid WPluginManager::getPluginByName(const QString &name) const {
     const QVector<QUuid> list = getPluginByAttr(Plugin::Name, name);
     return list.isEmpty() ? QUuid() : list.first();
 }
 
-/// Returns the plugin instance for a given UUID, or nullptr.
 WPlugin *WPluginManager::getPluginById(const QUuid &id) const {
     Q_D(const WPluginManager);
     return d->plugins.value(id, nullptr);
 }
 
-/// Returns UUIDs of all registered plugins.
 QVector<QUuid> WPluginManager::allPluginsId() const {
     Q_D(const WPluginManager);
     return d->plugins.keys().toVector();
 }
 
-/// Returns pointers to all registered plugin instances.
 QVector<WPlugin *> WPluginManager::allPluginsInst() const {
     Q_D(const WPluginManager);
     return d->plugins.values().toVector();
 }
 
 // Metadata persistence
-/// Stores metadata, applying name‑uniqueness logic if the key is Plugin::Name.
+
 QVariant WPluginManager::setPluginData(const QUuid &id, const QString &key,
                                        const QVariant &value) {
     Q_D(WPluginManager);
@@ -258,7 +246,6 @@ QVariant WPluginManager::setPluginData(const QUuid &id, const QString &key,
 
 // Message routing
 
-/// Sends a message to the plugin whose name matches msg.dest.
 bool WPluginManager::sendMsg(WMessage &msg) {
     WPlugin *plugin = getPluginById(getPluginByName(msg.dest));
     if (!plugin)
@@ -276,7 +263,7 @@ QString WPluginManager::makeUniquePluginName(const QString &baseName,
                                              const QUuid &excludeId) const {
     Q_D(const WPluginManager);
 
-    // Collect all names currently in use, skipping the plugin being renamed.
+    // Collect names in use, skipping the plugin that is being renamed.
     QSet<QString> used;
     for (auto it = d->plugins.cbegin(); it != d->plugins.cend(); ++it) {
         if (it.key() == excludeId)
@@ -286,18 +273,17 @@ QString WPluginManager::makeUniquePluginName(const QString &baseName,
             used.insert(name);
     }
 
-    // If the desired name is already unique, return it.
     if (!used.contains(baseName))
         return baseName;
 
-    // Extract the root name – strip any existing " (number)" suffix.
+    // Strip any existing " (number)" suffix to recover the root name.
     static const QRegularExpression suffixRegex(
         QRegularExpression::anchoredPattern(QStringLiteral(R"((.*) \((\d+)\))")));
     QRegularExpressionMatch match = suffixRegex.match(baseName);
     QString root = match.hasMatch() ? match.captured(1) : baseName;
 
-    // Generate "root (2)", "root (3)", … until an unused name is found.
-    // Number 1 is never created to keep the naming scheme clean.
+    // Try "root (2)", "root (3)", ... until a free name is found. Number 1 is
+    // never used to keep the naming scheme uniform.
     int suffix = 2;
     QString candidate;
     do {

@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -21,11 +21,13 @@
 #include "WECore/config/WConfigEditorAction.h"
 #include "WECore/config/WConfigEditorArray.h"
 #include "WECore/config/WConfigEditorBool.h"
+#include "WECore/config/WConfigEditorCustom.h"
 #include "WECore/config/WConfigEditorDouble.h"
 #include "WECore/config/WConfigEditorInt.h"
 #include "WECore/config/WConfigEditorObject.h"
 #include "WECore/config/WConfigEditorSelect.h"
 #include "WECore/config/WConfigEditorString.h"
+#include "WECore/config/WConfigLayout.h"
 #include "WECore/config/WConfigRef.h"
 #include <QFont>
 #include <QHBoxLayout>
@@ -35,66 +37,110 @@
 
 namespace we::config {
 
-WConfigItemWidget::WConfigItemWidget(WConfigDataBase *data, QWidget *parent)
+WConfigItemWidget::WConfigItemWidget(WConfigDataBase *data,
+                                     WConfigItemWidgetStyle style, QWidget *parent)
     : QWidget(parent), m_data(data) {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(6);
-    mainLayout->setContentsMargins(10, 10, 10, 10);
+    mainLayout->setSpacing(Layout::ItemSpacing);
+    mainLayout->setContentsMargins(Layout::ContentsMargin, Layout::ContentsMargin,
+                                   Layout::ContentsMargin, Layout::ContentsMargin);
 
-    // 标题行：显示名 + 重置按钮
-    QHBoxLayout *titleLayout = new QHBoxLayout();
-    m_nameLabel = new QLabel(m_data->info().displayName().isEmpty()
-                                 ? m_data->key()
-                                 : m_data->info().displayName(),
-                             this);
-    QFont nameFont = m_nameLabel->font();
-    nameFont.setBold(true);
-    m_nameLabel->setFont(nameFont);
-    m_defaultTextColor = m_nameLabel->palette().color(QPalette::WindowText);
-    titleLayout->addWidget(m_nameLabel);
-    titleLayout->addStretch();
+    const bool isFull = (style == WConfigItemWidgetStyle::Full);
+    const bool isInline = (style == WConfigItemWidgetStyle::Inline);
 
-    // 重置按钮
-    m_resetButton = new QToolButton(this);
-    m_resetButton->setText("🔄");
-    m_resetButton->setFixedSize(24,24);
-    m_resetButton->setToolTip(tr("Reset to default value"));
-    m_resetButton->setVisible(!m_data->info().defaultValue().isNull());
-    connect(m_resetButton, &QToolButton::clicked, this,
-            &WConfigItemWidget::onResetToDefault);
-    titleLayout->addWidget(m_resetButton);
+    if (isFull) {
+        // Title row: name + reset + undo buttons.
+        QHBoxLayout *titleLayout = new QHBoxLayout();
+        titleLayout->setSpacing(Layout::RowSpacing);
+        m_nameLabel = new QLabel(m_data->info().displayName().isEmpty()
+                                     ? m_data->key()
+                                     : m_data->info().displayName(),
+                                 this);
+        QFont nameFont = m_nameLabel->font();
+        nameFont.setBold(true);
+        m_nameLabel->setFont(nameFont);
+        m_nameLabel->setWordWrap(true); // Wrap long titles so they don't squeeze the right-side buttons
+        titleLayout->addWidget(m_nameLabel);
+        titleLayout->addStretch();
 
-    mainLayout->addLayout(titleLayout);
+        createButtons();
+        titleLayout->addWidget(m_resetButton);
+        titleLayout->addWidget(m_undoButton);
 
-    // 描述
-    m_descLabel = new QLabel(m_data->info().description(), this);
-    QFont descFont = m_descLabel->font();
-    descFont.setPointSize(descFont.pointSize() - 1);
-    m_descLabel->setFont(descFont);
-    m_descLabel->setStyleSheet("color: #666666;");
-    m_descLabel->setObjectName("DescLabel");
-    mainLayout->addWidget(m_descLabel);
+        mainLayout->addLayout(titleLayout);
 
-    m_undoButton = new QToolButton(this);
-    m_undoButton->setText("⬅");
-    m_undoButton->setFixedSize(24,24);
-    m_undoButton->setToolTip(tr("Undo changes"));
-    m_undoButton->setVisible(false);
-    connect(m_undoButton, &QToolButton::clicked, this,
-            &WConfigItemWidget::onUndo);
-    titleLayout->addWidget(m_undoButton);
+        // Description (hidden when empty).
+        m_descLabel = new QLabel(m_data->info().description(), this);
+        QFont descFont = m_descLabel->font();
+        descFont.setPointSize(descFont.pointSize() - 1);
+        m_descLabel->setFont(descFont);
+        m_descLabel->setStyleSheet("color: #666666;");
+        m_descLabel->setObjectName("DescLabel");
+        m_descLabel->setWordWrap(true); // Wrap long descriptions to avoid horizontal overflow
+        m_descLabel->setVisible(!m_data->info().description().isEmpty());
+        mainLayout->addWidget(m_descLabel);
+    }
 
-    // 编辑器
     m_editor = createValueWidget();
-    m_editor->createEditor();
-    m_editor->setConfigData(m_data);
-    connect(m_editor, &WConfigEditorBase::valueChanged, this,
-            &WConfigItemWidget::updateUndoVisibility);
-    mainLayout->addWidget(m_editor);
+    if (m_editor) {
+        m_editor->createEditor();
+        m_editor->setConfigData(m_data);
+        connect(m_editor, &WConfigEditorBase::valueChanged, this,
+                &WConfigItemWidget::updateUndoVisibility);
+    }
 
-    if (m_data->hasProperty(Property::ReadOnly)) {
-        m_editor->setEnabled(false);
-        m_resetButton->setEnabled(false);
+    if (isFull) {
+        if (m_editor)
+            mainLayout->addWidget(m_editor);
+    } else if (isInline) {
+        // Inline: title on the left, editor in the middle, reset/undo on the right.
+        QHBoxLayout *inlineLayout = new QHBoxLayout();
+        inlineLayout->setContentsMargins(0, 0, 0, 0);
+        inlineLayout->setSpacing(Layout::RowSpacing);
+        m_nameLabel = new QLabel(m_data->info().displayName().isEmpty()
+                                     ? m_data->key()
+                                     : m_data->info().displayName(),
+                                 this);
+        QFont nameFont = m_nameLabel->font();
+        nameFont.setBold(true);
+        m_nameLabel->setFont(nameFont);
+        m_nameLabel->setMinimumWidth(90); // Fixed title width keeps multiple Inline rows aligned
+        inlineLayout->addWidget(m_nameLabel);
+        if (m_editor) {
+            // Let the editor shrink: spin boxes have a large intrinsic minimum width and
+            // would break the row when several Inline items sit side by side.
+            m_editor->setSizePolicy(QSizePolicy::Ignored,
+                                    m_editor->sizePolicy().verticalPolicy());
+            m_editor->setMinimumWidth(40);
+            inlineLayout->addWidget(m_editor, 1);
+        }
+        createButtons();
+        inlineLayout->addWidget(m_resetButton);
+        inlineLayout->addWidget(m_undoButton);
+        mainLayout->addLayout(inlineLayout);
+    } else {
+        // Compact: editor + reset/undo buttons on the right.
+        QHBoxLayout *compactLayout =
+            new QHBoxLayout();
+        compactLayout->setContentsMargins(0, 0, 0, 0);
+        compactLayout->setSpacing(Layout::RowSpacing);
+        if (m_editor)
+            compactLayout->addWidget(m_editor, 1);
+        createButtons();
+        compactLayout->addWidget(m_resetButton);
+        compactLayout->addWidget(m_undoButton);
+        mainLayout->addLayout(compactLayout);
+    }
+
+    applyReadOnly();
+
+    if (isInline) {
+        // Inline has no separate description row; the tooltip carries the details.
+        setStyleTooltip();
+        // Title row is shown by default (works with setShowTitle).
+        applyTitleVisibility();
+    } else if (!m_data->info().description().isEmpty()) {
+        setStyleTooltip();
     }
 
     setFocusPolicy(Qt::ClickFocus);
@@ -102,8 +148,30 @@ WConfigItemWidget::WConfigItemWidget(WConfigDataBase *data, QWidget *parent)
     m_itemRef = QSharedPointer<WConfigItemRef>::create(m_data);
     m_itemRef->setOnChanged([this]() { updateUndoVisibility(); });
     updateUndoVisibility();
-    connect(m_editor, &WConfigEditorBase::valueChanged, this,
-            &WConfigItemWidget::valueChanged);
+    if (m_editor) {
+        connect(m_editor, &WConfigEditorBase::valueChanged, this,
+                &WConfigItemWidget::valueChanged);
+    }
+}
+
+void WConfigItemWidget::createButtons() {
+    if (m_resetButton || m_undoButton)
+        return;
+    m_resetButton = new QToolButton(this);
+    m_resetButton->setText(QStringLiteral("🔄"));
+    m_resetButton->setFixedSize(24, 24);
+    m_resetButton->setToolTip(tr("Reset to default value"));
+    m_resetButton->setVisible(!m_data->info().defaultValue().isNull());
+    connect(m_resetButton, &QToolButton::clicked, this,
+            &WConfigItemWidget::onResetToDefault);
+
+    m_undoButton = new QToolButton(this);
+    m_undoButton->setText(QStringLiteral("⬅"));
+    m_undoButton->setFixedSize(24, 24);
+    m_undoButton->setToolTip(tr("Undo changes"));
+    m_undoButton->setVisible(false);
+    connect(m_undoButton, &QToolButton::clicked, this,
+            &WConfigItemWidget::onUndo);
 }
 
 WConfigEditorBase *WConfigItemWidget::createValueWidget() {
@@ -124,22 +192,77 @@ WConfigEditorBase *WConfigItemWidget::createValueWidget() {
         return new WConfigEditorSelect(this);
     case DataType::Action:
         return new WConfigEditorAction(this);
+    case DataType::Custom:
+        return new WConfigEditorCustom(this);
     default:
         return nullptr;
     }
 }
 
+void WConfigItemWidget::applyReadOnly() {
+    if (!m_editor)
+        return;
+    bool ro = m_data && m_data->hasProperty(Property::ReadOnly);
+    m_editor->setEnabled(!ro);
+    if (m_resetButton)
+        m_resetButton->setEnabled(!ro);
+}
+
+void WConfigItemWidget::setShowTitle(bool show) {
+    m_showTitle = show;
+    applyTitleVisibility();
+}
+
+void WConfigItemWidget::setShowDescription(bool show) {
+    m_showDesc = show;
+    if (m_descLabel)
+        m_descLabel->setVisible(show && !m_descLabel->text().isEmpty());
+}
+
+void WConfigItemWidget::applyTitleVisibility() {
+    if (m_nameLabel)
+        m_nameLabel->setVisible(m_showTitle);
+    if (m_resetButton)
+        m_resetButton->setVisible(m_showTitle &&
+                                  !m_data->info().defaultValue().isNull());
+    if (m_undoButton) {
+        bool actModified = m_data &&
+                           (m_data->getTemporary() != m_data->getPersistent());
+        m_undoButton->setVisible(m_showTitle && actModified);
+    }
+}
+
+void WConfigItemWidget::setStyleTooltip() {
+    if (!m_data)
+        return;
+    QString tip = m_data->info().displayName().isEmpty() ? m_data->key()
+                                                         : m_data->info().displayName();
+    if (!m_data->info().description().isEmpty())
+        tip += "\n\n" + m_data->info().description();
+    setToolTip(tip);
+}
+
+void WConfigItemWidget::refresh() {
+    if (m_editor) {
+        m_editor->refreshFromData();
+        m_editor->setConfigData(m_data);
+    }
+    applyReadOnly();
+    updateUndoVisibility();
+}
+
 void WConfigItemWidget::updateUndoVisibility() {
-    if (m_data) {
-        bool modified = (m_data->getTemporary() != m_data->getPersistent());
-        m_undoButton->setVisible(modified);
+    if (m_data && m_undoButton) {
+        bool actModified = (m_data->getTemporary() != m_data->getPersistent());
+        m_undoButton->setVisible(m_showTitle && actModified);
     }
 }
 
 void WConfigItemWidget::onUndo() {
     if (m_data) {
         m_data->revertToPersistent();
-        if (m_editor) m_editor->setConfigData(m_data);
+        if (m_editor)
+            m_editor->setConfigData(m_data);
         updateUndoVisibility();
         emit valueChanged();
     }
@@ -157,14 +280,10 @@ void WConfigItemWidget::setCurrentValue(const QVariant &value) {
 void WConfigItemWidget::setSelected(bool selected)
 {
     if (!m_nameLabel) return;
-    // QPalette pal = m_nameLabel->palette();
     if (selected)
         m_nameLabel->setStyleSheet("color: #89b2b8ff;");
-    //pal.setColor(QPalette::WindowText, Qt::blue);
     else
         m_nameLabel->setStyleSheet("");
-    //pal.setColor(QPalette::WindowText, m_defaultTextColor);
-    //m_nameLabel->setPalette(pal);
 }
 
 void WConfigItemWidget::mousePressEvent(QMouseEvent *event) {

@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -39,8 +39,8 @@ WConfigDataBase *WConfigDataSelect::init(const QString &key,
     QString adjusted = adjustToOptions(defVal, info.options());
     m_value = adjusted;
     m_original = adjusted;
-    m_info.defaultValue(adjusted);
     WConfigDataBase::init(DataType::Select, key, info, parent);
+    m_info.defaultValue(adjusted);
     return this;
 }
 WConfigDataSelect *WConfigDataSelect::init(const QString &key,

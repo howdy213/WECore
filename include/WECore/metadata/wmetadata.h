@@ -6,8 +6,8 @@
  * defaults, a global fallback value, and import/export via QMap.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -30,16 +30,11 @@
 #include <QScopedPointer>
 #include <QString>
 
-#include "WECore/Def/wedef.h"
+#include "WECore/def/wedef.h"
 
 namespace we {
 
-/**
- * @brief Private data for the WMetaData template (d‑pointer pattern).
- *
- * Stores the actual user‑set values, per‑key fallback defaults,
- * and a global default value.
- */
+/// Private data of WMetaData (d‑pointer pattern).
 template <class T>
 class WConfigPrivate
 {
@@ -50,15 +45,10 @@ public:
 };
 
 /**
- * @brief A key‑value metadata container with hierarchical defaults.
+ * @brief Key‑value container with per‑key and global defaults.
  *
- * Values are retrieved in the following order:
- * 1. User‑set value for the key.
- * 2. Per‑key default value.
- * 3. Global default value.
- *
- * The class is non‑copyable and uses the Qt d‑pointer to keep binary
- * compatibility.
+ * get() resolves a key in order: user‑set value, per‑key default,
+ * then the global default.
  */
 template <class T>
 class WE_EXPORT WMetaData
@@ -66,65 +56,33 @@ class WE_EXPORT WMetaData
     Q_DISABLE_COPY(WMetaData)
 
 public:
-    /// Constructs an empty metadata container.
     WMetaData();
 
-    /// Destroys the container. The private data is automatically cleaned up.
     virtual ~WMetaData();
 
-    /**
-     * @brief Retrieves the value associated with @p key.
-     * @param key The key to look up.
-     * @return The stored value, or the appropriate default if not found.
-     */
+    /// Returns the user value for @p key, else its per‑key default, else the global default.
     T get(const QString &key) const;
 
-    /**
-     * @brief Sets a per‑key default value.
-     * @param key   The key for which to set the default.
-     * @param value The default value.
-     * @return @c true if no user‑set value existed for the key (i.e., the
-     *         default will be used for future calls to get()), @c false
-     *         if a user value already overrides this default.
-     */
+    /// Sets the per‑key default; returns @c false if a user value already overrides it.
     bool setDefault(const QString &key, const T &value);
 
-    /**
-     * @brief Checks whether a key has any value (user‑set or default).
-     * @param key The key to check.
-     * @return @c true if the key exists.
-     */
+    /// True if @p key has a user value or a per‑key default.
     bool hasArg(const QString &key) const;
 
-    /**
-     * @brief Stores a user‑set value for @p key.
-     * @param key   The key.
-     * @param value The value to store.
-     * @return @c true if the key previously existed (either user‑set or default),
-     *         @c false if this is a new key.
-     */
+    /// Stores a user value; returns @c true if the key already existed (user value or default).
     bool set(const QString &key, const T &value);
 
-    /**
-     * @brief Sets the global fallback default value.
-     * @param value The global default.
-     *
-     * This value is returned by get() when no user‑set or per‑key default exists.
-     */
+    /// Sets the global fallback returned by get() when the key has no value or per‑key default.
     void setDefaultValue(const T &value);
 
-    /**
-     * @brief Returns a copy of all user‑set key‑value pairs.
-     */
+    /// Returns a copy of all user‑set key‑value pairs.
     QMap<QString, T> toMap() const;
 
-    /**
-     * @brief Returns a copy of all per‑key default values.
-     */
+    /// Returns a copy of all per‑key defaults.
     QMap<QString, T> toMapDefault() const;
 
 protected:
-    QScopedPointer<WConfigPrivate<T>> d; ///< Private data object.
+    QScopedPointer<WConfigPrivate<T>> d; ///< Private data (d‑pointer).
 };
 
 

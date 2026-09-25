@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -44,8 +44,8 @@ public:
     }
     bool revertToPersistent() override { return false; }
     bool syncPersistent(bool emitSignal) override {
-        return true;
         Q_UNUSED(emitSignal);
+        return true;
     }
     QVariant toVariant() const override { return QVariant(); }
     bool fromVariant(const QVariant &) override { return false; }

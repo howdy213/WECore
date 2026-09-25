@@ -8,8 +8,8 @@
  * forward‑declares every major class in the library.
  *
  * @author howdy213
- * @date 2026-08-20
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -30,6 +30,8 @@
 
 #include <QtGlobal>
 
+// Token pasting / stringification helpers. The two-level LS/MS/EX forms force
+// their arguments to expand before pasting or stringifying.
 #define EX(a) a
 #define _LS(a, b) a##b
 #define LS(a, b) _LS(a, b)
@@ -81,6 +83,7 @@ constexpr auto ConfigPath = "config/config.json";
 constexpr auto Scale = "Scale";             ///< string(x.x)
 constexpr auto Font = "Font";               ///< string(int)
 constexpr auto DefaultMain = "DefaultMain"; ///< string(path)
+constexpr auto Language = "Language";       ///< string(zh_CN|en_US)
 } // namespace Config
 
 /// Plugin discovery / configuration keys.
@@ -148,8 +151,8 @@ class WE;
 class WEBase;
 class WEBaseData;
 class WEClass;
-class WEvent;
-class WMessage;
+struct WEvent;
+struct WMessage;
 class WMetaDocument;
 class WPlugin;
 class WPath;

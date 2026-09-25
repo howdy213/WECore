@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -26,6 +26,7 @@
 
 namespace we::config {
 
+// Delegate that blocks editing in column 0 (the key/index column).
 class NoEditColumnDelegate : public QStyledItemDelegate {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
@@ -35,6 +36,9 @@ public:
 
 class WConfigItemWidget;
 
+// Base class for per-type value editors. Renders one config item into a widget and
+// writes user edits back into the item's temporary value. Editors are created as
+// children of their owning WConfigItemWidget.
 class WE_EXPORT WConfigEditorBase : public QWidget {
     Q_OBJECT
 public:
@@ -44,12 +48,15 @@ public:
     virtual void setConfigData(WConfigDataBase *data);
     virtual WConfigDataBase *configData();
     virtual void createEditor();
+    // Caller-driven refresh: read the value from m_data back into the widget
+    // (default no-op).
+    virtual void refreshFromData();
 
 signals:
-    void valueChanged();  // 当编辑器值被用户修改时发射
+    void valueChanged(); // Emitted when the user modifies the editor value.
 protected:
     WConfigDataBase *m_data = nullptr;
-    DataType m_type = DataType::None;
+    DataType m_type = DataType::None; // Expected item type, set by each subclass ctor
 };
 
 } // namespace we::config

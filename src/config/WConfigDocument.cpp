@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -19,15 +19,8 @@
  */
 #include "WECore/config/WConfigDocument.h"
 #include <QDebug>
-#include <QDir>
-#include <QFile>
-#include <QFileInfo>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QSettings>
-#include <QVariantList>
 #include <QVariantMap>
+#include <functional>
 
 namespace we::config {
 
@@ -43,96 +36,11 @@ void WConfigDocument::setTemplate(WConfigTemplate *configTemplate) {
     }
 }
 
-bool WConfigDocument::load(const QString &filePath) {
-    QFileInfo info(filePath);
-    if (info.suffix().compare("json", Qt::CaseInsensitive) == 0)
-        return loadJson(filePath);
-    else if (info.suffix().compare("ini", Qt::CaseInsensitive) == 0)
-        return loadIni(filePath);
-    return false;
-}
-
-bool WConfigDocument::save(const QString &filePath, QStringList &errors) {
-    errors.clear();
-    std::function<void(WConfigViewer *)> checkLocked =
-        [&](WConfigViewer *viewer) {
-        if (!viewer)
-                return;
-        for (auto *data : viewer->allConfigData()) {
-            if (data->isEffectivelyLocked() && data->modified()) {
-                errors << data->fullPath();
-            }
-        }
-        for (auto *child : viewer->children()) {
-            checkLocked(child);
-        }
-        };
-    checkLocked(m_root);
-    if (!errors.isEmpty()) {
-        return false;
-    }
-
-    QFileInfo info(filePath);
-    if (info.suffix().compare("json", Qt::CaseInsensitive) == 0)
-        return saveJson(filePath);
-    else if (info.suffix().compare("ini", Qt::CaseInsensitive) == 0)
-        return saveIni(filePath);
-    return false;
-}
-
 QVariant WConfigDocument::toVariant() const { return saveToVariant(m_root); }
 
-bool WConfigDocument::loadJson(const QString &filePath) {
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Cannot open file, using defaults.";
-        return false;
-    }
-    QByteArray data = file.readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(data);
-    if (doc.isNull()) {
-        qWarning() << "Invalid JSON, using defaults.";
-        return false;
-    }
-    loadFromVariant(m_root, doc.toVariant());
-    syncToAllPersistent();
-    return true;
-}
-
-bool WConfigDocument::saveJson(const QString &filePath) {
-    QFileInfo fileInfo(filePath);
-    QDir dir = fileInfo.absoluteDir();
-    if (!dir.exists()) {
-        if (!dir.mkpath(".")) { // 创建整个目录路径
-            return false;
-        }
-    }
-
-    QVariant variant = saveToVariant(m_root);
-    QJsonDocument doc = QJsonDocument::fromVariant(variant);
-    QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-        return false;
-    file.write(doc.toJson(QJsonDocument::Indented));
-    return true;
-}
-
-bool WConfigDocument::loadIni(const QString &filePath) {
-    QSettings settings(filePath, QSettings::IniFormat);
-    clearViewer(m_root);
-    loadFromVariant(m_root, settings.value("config"));
-    syncToAllPersistent();
-    return true;
-}
-
-bool WConfigDocument::saveIni(const QString &filePath) {
-    QSettings settings(filePath, QSettings::IniFormat);
-    settings.setValue("config", saveToVariant(m_root));
-    return true;
-}
 void WConfigDocument::loadFromVariant(WConfigViewer *viewer,
                                       const QVariant &variant) {
-    if (!variant.canConvert<QVariantMap>())
+    if (!viewer || !variant.canConvert<QVariantMap>())
         return;
 
     QVariantMap map = variant.toMap();
@@ -151,6 +59,10 @@ void WConfigDocument::loadFromVariant(WConfigViewer *viewer,
             existing->fromVariant(value);
             continue;
         }
+        // Note: a custom-type node predeclared by the template is correctly
+        // deserialized by the "existing" branch above. If it is serialized as a
+        // QVariantMap without being predeclared, it cannot be recognized as a
+        // custom type during load and must be predeclared in the template.
         bool isViewerInTemplate = false;
         if (tmplViewer) {
             for (WConfigViewer *child : tmplViewer->children()) {
@@ -181,7 +93,7 @@ void WConfigDocument::loadFromVariant(WConfigViewer *viewer,
             if (!tmplIsObject) {
                 WConfigViewer *newChild = new WConfigViewer(key, viewer);
                 if (viewer->addChild(newChild)) {
-                    loadFromVariant(newChild, value); // 递归加载子目录的内容
+                    loadFromVariant(newChild, value);
                 } else {
                     delete newChild;
                 }
@@ -229,11 +141,10 @@ void WConfigDocument::loadFromVariant(WConfigViewer *viewer,
 
 QVariant WConfigDocument::saveToVariant(WConfigViewer *viewer) const {
     QVariantMap map;
-    // 先添加数据项
+    // Insert data items before subdirectories so the conflict check in the next loop works
     for (WConfigDataBase *data : viewer->allConfigData()) {
         map[data->key()] = data->toVariant();
     }
-    // 再添加子目录
     for (WConfigViewer *child : viewer->children()) {
         if (map.contains(child->name())) {
             qWarning() << "WConfigDocument: conflict between data item and "
@@ -274,90 +185,6 @@ void WConfigDocument::syncToAllPersistent() {
         }
     };
     traverse(m_root);
-}
-static void insertNested(QVariantMap &root, const QStringList &path,
-                         const QVariant &value) {
-    if (path.isEmpty())
-        return;
-    if (path.size() == 1) {
-        root[path.first()] = value;
-    } else {
-        QString first = path.first();
-        QVariantMap subMap = root[first].toMap(); // 获取当前子 map 副本
-        insertNested(subMap, path.mid(1), value); // 递归插入
-        root[first] = subMap;                     // 写回
-    }
-}
-
-// 将 QSettings 中的所有扁平键转换为嵌套 QVariantMap
-static QVariantMap settingsToNestedMap(QSettings *settings) {
-    QVariantMap result;
-    const QStringList keys = settings->allKeys();
-    for (const QString &key : keys) {
-        QStringList path = key.split('/', Qt::SkipEmptyParts);
-        QVariant value = settings->value(key);
-        insertNested(result, path, value);
-    }
-    return result;
-}
-
-// 递归地将嵌套 QVariantMap 展平并写入 QSettings
-static void nestedMapToSettings(const QVariantMap &map, const QString &prefix,
-                                QSettings *settings) {
-    for (auto it = map.begin(); it != map.end(); ++it) {
-        QString key = prefix.isEmpty() ? it.key() : prefix + "/" + it.key();
-        if (it.value().typeId() == QMetaType::QVariantMap) {
-            nestedMapToSettings(it.value().toMap(), key, settings);
-        } else {
-            settings->setValue(key, it.value());
-        }
-    }
-}
-
-// 收集嵌套 QVariantMap 中所有叶子键的完整路径
-static void collectLeafKeys(const QVariantMap &map, const QString &prefix,
-                            QStringList &keys) {
-    for (auto it = map.begin(); it != map.end(); ++it) {
-        QString key = prefix.isEmpty() ? it.key() : prefix + "/" + it.key();
-        if (it.value().typeId() == QMetaType::QVariantMap) {
-            collectLeafKeys(it.value().toMap(), key, keys);
-        } else {
-            keys.append(key);
-        }
-    }
-}
-
-bool WConfigDocument::loadFromSettings(QSettings *settings) {
-    if (!settings)
-        return false;
-    QVariantMap nested = settingsToNestedMap(settings);
-    loadFromVariant(m_root, nested);
-    syncToAllPersistent();
-    return true;
-}
-
-bool WConfigDocument::saveToSettings(QSettings *settings) {
-    if (!settings)
-        return false;
-    QVariant nested = saveToVariant(m_root);
-    QVariantMap nestedMap = nested.toMap();
-
-    // 收集文档将写入的所有键
-    QStringList docKeys;
-    collectLeafKeys(nestedMap, QString(), docKeys);
-
-    // 删除 QSettings 中存在但文档中已不存在的键（持久化删除操作）
-    const QStringList currentKeys = settings->allKeys();
-    for (const QString &key : currentKeys) {
-        if (!docKeys.contains(key)) {
-            settings->remove(key);
-        }
-    }
-
-    // 写入当前文档的所有键
-    nestedMapToSettings(nestedMap, QString(), settings);
-    settings->sync(); // 立即写入
-    return true;
 }
 
 } // namespace we::config

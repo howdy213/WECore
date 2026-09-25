@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -33,12 +33,12 @@ WConfigDataBase *WConfigDataObject::init(const QString &key,
     if (!m_content)
         m_content = new WConfigViewer(key, nullptr);
 
-    // 如果 info 有默认值且是 Map，则应用它
+    // If info has a default value that is a Map, apply it
     if (info.defaultValue().canConvert<QVariantMap>()) {
         fromVariant(info.defaultValue());
     }
 
-    // 如果没有有效的默认值，但有子项，则自动构建默认值
+    // If there is no valid default value but there are children, build the default value automatically
     if (!m_info.defaultValue().isValid() &&
         !m_content->allConfigData().isEmpty()) {
         buildDefaultMap();
@@ -63,9 +63,7 @@ WConfigDataObject *WConfigDataObject::init(const QString &key,
 WConfigDataObject::~WConfigDataObject() { delete m_content; }
 
 bool WConfigDataObject::setTemporary(const QVariant &value) {
-    QVariant oldVal = toVariant();
-    bool ok = fromVariant(value);
-    return ok;
+    return fromVariant(value);
 }
 
 bool WConfigDataObject::setPersistent(const QVariant &val, bool emitSignal) {
@@ -146,7 +144,7 @@ void WConfigDataObject::forEachChild(
 }
 
 void WConfigDataObject::syncPersistentRecursive(bool emitSignal) {
-    syncPersistent();
+    syncPersistent(emitSignal);
     for (WConfigDataBase *data : m_content->allConfigData()) {
         data->syncPersistentRecursive(emitSignal);
     }

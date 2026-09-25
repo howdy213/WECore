@@ -2,8 +2,8 @@
  * @file webasedata.cpp
  * @brief Implementation file for WE base data.
  * @author howdy213
- * @date 2026-05-04
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * @copyright Copyright 2025-2026 howdy213
  *
@@ -28,42 +28,27 @@ namespace we {
  */
 class WEBaseDataPrivate {
 public:
-    QMap<QString, QVariant> data;       ///< Key-value data storage.
-    QMap<QString, QString> map;         ///< Alias mapping from preimage to image.
+    QMap<QString, QVariant> data; ///< Key/value data storage.
+    QMap<QString, QString> map;   ///< Alias map: lookup key -> target key.
 };
 
-/**
- * @brief Constructs a WEBaseData object.
- */
 WEBaseData::WEBaseData() {
     d = new WEBaseDataPrivate;
 }
 
-/**
- * @brief Destroys the WEBaseData object.
- */
 WEBaseData::~WEBaseData() {
     delete d;
     d = nullptr;
 }
 
-/**
- * @brief Retrieves data by key, resolving aliases.
- * @param name The key (or alias) to look up.
- * @return The stored QVariant, or an invalid QVariant if not found.
- */
 QVariant WEBaseData::getData(QString name) {
+    // Resolve an alias first, then fall back to the key itself.
     name = d->map.contains(name) ? d->map[name] : name;
     if (d->data.contains(name))
         return d->data[name];
     return QVariant();
 }
 
-/**
- * @brief Adds or updates data for a given key.
- * @param key The key under which to store the data.
- * @param value The value to store.
- */
 void WEBaseData::addData(QString key, QVariant value) {
     d->data.insert(key, value);
 }

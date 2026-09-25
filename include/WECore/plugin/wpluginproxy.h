@@ -1,9 +1,9 @@
 /**
  * @file wpluginproxy.h
- * @brief Plugin proxy layer, not used
+ * @brief Unused placeholder for a plugin proxy layer.
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -23,10 +23,13 @@
 #define WPLUGINPROXY_H
 #include "WECore/def/wedef.h"
 
- namespace we{
-    class WE_EXPORT WPluginProxy {
+namespace we {
+/**
+ * @brief Placeholder type; not used by the plugin subsystem yet.
+ */
+class WE_EXPORT WPluginProxy {
 public:
     WPluginProxy();
 };
-}
+} // namespace we
 #endif // WPLUGINPROXY_H

@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -33,7 +33,10 @@ namespace we::config {
 class WConfigDataBase;
 class WConfigViewer;
 
-// ---------- 配置项引用 ----------
+// ---------- Config item reference ----------
+// Non-owning handle to a single WConfigDataBase; registers itself as an observer
+// of that item. If the item may be destroyed while the ref is alive, call
+// invalidate() first, otherwise the ref would dangle.
 class WE_EXPORT WConfigItemRef {
 public:
     explicit WConfigItemRef(WConfigDataBase *data);
@@ -57,18 +60,20 @@ private:
     std::function<void()> m_onChanged;
 };
 
-// ---------- 目录引用 ----------
+// ---------- Directory reference ----------
+// Non-owning handle to a WConfigViewer subtree; all relative paths are resolved
+// against that directory.
 class WE_EXPORT WConfigDirRef {
 public:
     explicit WConfigDirRef(WConfigViewer *viewer);
     ~WConfigDirRef();
-    // 仅当前层数据项
+    // Current level's data items only
     QVariantMap toMap() const;
-    // 仅更新当前层已存在的数据项
+    // Updates only the data items already present at the current level
     bool fromMap(const QVariantMap &map, bool force = false);
-    // 支持多级路径，返回数据值或子树的Variant
+    // Accepts multi-level paths; returns the item value or the subtree as a QVariant
     QVariant getRelative(const QString &relPath) const;
-    // 支持多级路径，自动创建中间目录
+    // Accepts multi-level paths; creates intermediate directories as needed
     bool setRelative(const QString &relPath, const QVariant &val,
                      bool force = false);
 
@@ -77,19 +82,19 @@ public:
     bool isLocked() const;
     bool isEffectivelyLocked() const;
     QString path() const;
-    // 递归获取整个子树（包括子目录）
+    // Recursively read the whole subtree (including subdirectories)
     QVariant toVariant() const;
-    // 递归恢复整个子树（可创建新项/目录）
+    // Recursively restore the whole subtree (may create new items/directories)
     bool fromVariant(const QVariant &variant, bool force = false);
-    // 当前目录下所有子项名称（数据项+子目录）
+    // Names of all children (data items + subdirectories) under this directory
     QStringList childKeys() const;
-    // 检查相对路径是否存在
+    // Whether the relative path exists
     bool contains(const QString &relPath) const;
-    // 获取相对路径对应的数据类型（若为目录返回Object）
+    // Data type at the relative path (Object for a directory)
     DataType typeOf(const QString &relPath) const;
 
     QSharedPointer<WConfigDirRef>
-    subDir(const QString &name) const; // 获取子目录引用
+    subDir(const QString &name) const; // reference to a subdirectory
 
 private:
     WConfigViewer *m_viewer;

@@ -2,8 +2,8 @@
  * @file webase.cpp
  * @brief Implementation file for the WE base class.
  * @author howdy213
- * @date 2026-05-04
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * @copyright Copyright 2025-2026 howdy213
  *
@@ -29,6 +29,8 @@ namespace we {
  */
 class WEBasePrivate {
 public:
+    // WEClass keeps a non-owning back-pointer to its WEBase owner, so the
+    // owner must outlive the WEClass it constructs.
     WEBasePrivate(WEBase *base)
         : weclass(QSharedPointer<WEClass>(new WEClass(base))),
         webasedata(QSharedPointer<WEBaseData>(new WEBaseData)) {}
@@ -37,66 +39,36 @@ public:
     QString wename = "";
 };
 
-/**
- * @brief Constructs a WEBase object.
- */
 WEBase::WEBase() {
     this->d = new WEBasePrivate(this);
 }
 
-/**
- * @brief Destroys the WEBase object.
- */
 WEBase::~WEBase() {
     if (d)
         delete d;
     d = nullptr;
 }
 
-/**
- * @brief Returns the WEClass instance.
- * @return Shared pointer to the WEClass.
- */
 QSharedPointer<WEClass> WEBase::getWEClass() {
     return d->weclass;
 }
 
-/**
- * @brief Sets the WEClass instance.
- * @param weclass Shared pointer to the new WEClass.
- */
 void WEBase::setWEClass(QSharedPointer<WEClass> weclass) {
     d->weclass = weclass;
 }
 
-/**
- * @brief Returns the WEBaseData instance.
- * @return Shared pointer to the WEBaseData.
- */
 QSharedPointer<WEBaseData> WEBase::getWEBaseData() {
     return d->webasedata;
 }
 
-/**
- * @brief Sets the WEBaseData instance.
- * @param webasedata Shared pointer to the new WEBaseData.
- */
 void WEBase::setWEBaseData(QSharedPointer<WEBaseData> webasedata) {
     d->webasedata = webasedata;
 }
 
-/**
- * @brief Sets the class name.
- * @param name The class name.
- */
 void WEBase::setClassName(QString name) {
     d->wename = name;
 }
 
-/**
- * @brief Returns the class name.
- * @return The class name.
- */
 QString WEBase::getClassName() {
     return d->wename;
 }

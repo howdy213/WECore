@@ -8,8 +8,8 @@
  * and asynchronous calls.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -39,36 +39,28 @@ namespace we {
 class ShellRunnablePrivate;
 
 /**
- * @brief A runnable that executes a shell operation in a background thread.
+ * @brief A runnable that executes a shell operation on a thread‑pool thread.
  *
- * Use it together with QThreadPool for non‑blocking execution.
+ * The parameters are captured at construction and forwarded by run();
+ * the instance deletes itself once run() returns.
  */
 class WE_EXPORT ShellRunnable : public QRunnable {
     Q_DISABLE_COPY(ShellRunnable)
 
 public:
-    /**
-   * @brief Constructs a runnable that will call ShellExecuteW when run.
-   * @param file      Path to the file or executable.
-   * @param operation The verb ("open", "runas", etc.). Default is "open".
-   * @param params    Command‑line parameters. Default empty.
-   * @param directory Working directory (use "default" for the file’s own
-   * folder).
-   */
+    /// @p directory "default" means "use the folder of @p file".
     ShellRunnable(const QString &file,
                   const QString &operation = QStringLiteral("open"),
                   const QString &params = QString(),
                   const QString &directory = QStringLiteral("default"));
 
-    /// Destroys the runnable. Private data is automatically freed.
     ~ShellRunnable() override;
 
     /**
-   * @brief Static helper that immediately performs the shell operation.
-   * @param file      Path to the file.
-   * @param operation The verb.
-   * @param params    Command‑line parameters.
-   * @param directory Working directory ("default" for file’s folder).
+   * @brief Performs the shell operation in the calling thread.
+   *
+   * @p params is passed to ShellExecuteW verbatim; quoting is the caller's
+   * responsibility.
    */
     static void execute(const QString &file,
                         const QString &operation = QStringLiteral("open"),
@@ -76,7 +68,7 @@ public:
                         const QString &directory = QStringLiteral("default"));
 
 protected:
-    /// Called by QThreadPool; invokes execute() with the stored parameters.
+    /// Called by QThreadPool; forwards the stored parameters to execute().
     void run() override;
 
 private:
@@ -85,24 +77,17 @@ private:
 };
 
 /**
- * @brief Provides static convenience methods for shell execution.
+ * @brief Static facade over the Windows shell (ShellExecuteW); fire‑and‑forget.
  */
 class WE_EXPORT WShellExecute {
 public:
-    /**
-   * @brief Synchronously executes a shell operation.
-   * @return Always returns @c true in the current implementation.
-   */
+    /// Runs the operation on the calling thread; always returns @c true (failures are unreported).
     static bool syncExecute(const QString &file,
                             const QString &operation = QStringLiteral("open"),
                             const QString &params = QString(),
                             const QString &directory = QStringLiteral("default"));
 
-    /**
-   * @brief Asynchronously executes a shell operation using the global thread
-   * pool.
-   * @return Always returns @c true in the current implementation.
-   */
+    /// Queues a ShellRunnable on the global thread pool; always returns @c true.
     static bool
     asyncExecute(const QString &file,
                  const QString &operation = QStringLiteral("open"),

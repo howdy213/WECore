@@ -1,14 +1,10 @@
 /**
  * @file wpluginmanager.h
- * @brief Plugin manager – loads, tracks, and communicates with plugins.
- *
- * WPluginManager is the central registry for all plugins. It assigns
- * unique IDs, handles the lifecycle (load/unload/init), stores persistent
- * metadata, and routes inter‑plugin messages.
+ * @brief Plugin manager - loads, tracks, and communicates with plugins.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -39,136 +35,107 @@
 namespace we {
 
 /**
- * @brief Callback type for providing initialisation data to a plugin.
- * @param msg  Mutable WMessage that will be passed to WPluginInterface::init().
+ * @brief Callback that may fill in the initialisation message before
+ * WPluginInterface::init() is invoked.
+ * @param msg Mutable WMessage handed to init().
  */
 using InitDataProc = std::function<void(WMessage &msg)>;
 
 class WPluginManagerPrivate;
 
 /**
- * @brief Manages the complete lifecycle of WPlugin instances.
+ * @brief Central registry owning and routing messages between plugins.
  *
- * WPluginManager is a QObject that can be used with Qt’s signal/slot
- * mechanism. It acts as the owner of all plugins, provides persistence
- * for metadata, and routes messages between plugins.
+ * Assigns instance UUIDs, keeps plugin metadata persistent, drives the
+ * load/init/unload lifecycle and routes messages by plugin name.
  *
- * @note The class is non‑copyable. Use a pointer if it must be stored
- *       inside a QVariant (`Q_DECLARE_METATYPE(we::WPluginManager *)`).
+ * @note Non-copyable. To store it inside a QVariant use a pointer
+ *       (`Q_DECLARE_METATYPE(we::WPluginManager *)`).
  */
 class WE_EXPORT WPluginManager : public QObject {
     Q_OBJECT
     Q_DISABLE_COPY(WPluginManager)
 
 public:
-    /// Constructs an empty plugin manager.
     explicit WPluginManager(QObject *parent = nullptr);
 
-    /// Destroys the manager. All plugins are unloaded (if not already done).
     ~WPluginManager() override;
 
     /**
-   * @brief Registers a plugin with the manager.
-   * @param plugin  A plugin instance created by the caller.
-   * @return @c true on success.
-   *
-   * The manager assigns a unique ID and ensures the plugin’s name is unique.
-   */
+     * @brief Registers a plugin and assigns it a unique instance UUID.
+     * @return true on success; false for a null plugin.
+     *
+     * The display name is made unique and the metadata is persisted to the
+     * plugin's configuration file.
+     */
     bool addPlugin(WPlugin *plugin);
 
     /**
-   * @brief Loads the plugin’s backend (DLL or EXE).
-   * @param plugin  The plugin to load.
-   * @return @c true if the plugin was successfully loaded or was already
-   * loaded.
-   */
+     * @brief Loads the plugin's backend (DLL or EXE).
+     * @return true if the plugin was loaded, or was already loaded; false if
+     *         it is null or not registered.
+     */
     bool loadPlugin(WPlugin *plugin);
 
     /**
-   * @brief Initialises a loaded plugin.
-   * @param plugin  The plugin to initialise.
-   * @param proc    Optional callback that can modify the initialisation
-   * message.
-   * @return @c true on success.
-   *
-   * If the plugin is an executable and its metadata key "Init" equals
-   * "default", initialisation is skipped (returns @c false).
-   */
+     * @brief Initialises a loaded plugin and registers its widget.
+     * @param plugin The plugin to initialise (must be loaded and registered).
+     * @param proc   Optional callback that can extend the initialisation
+     *               message.
+     * @return true on success.
+     *
+     * EXE plugins whose "Init" metadata equals "default" are deliberately
+     * skipped (returns false).
+     */
     bool initPlugin(WPlugin *plugin, InitDataProc proc = [](WMessage &) {});
 
     /**
-     * @brief Unloads a plugin and removes it from the registry.
-     * @param plugin  The plugin to unload.
-     * @return @c true if the plugin was successfully unloaded and removed.
+     * @brief Unloads a plugin (the instance is kept in the registry).
+     * @return true if the plugin was unloaded.
      */
     bool unloadPlugin(WPlugin *plugin);
 
     /**
-     * @brief Unloads a plugin but keeps it in the registry (hot unload).
-     * @param plugin  The plugin to hot unload.
-     * @return @c true if the plugin was successfully unloaded.
+     * @brief Unloads a plugin without removing it from the registry.
+     * @return true if the plugin was unloaded.
      */
     bool hotUnloadPlugin(WPlugin *plugin);
 
-    /// Unloads every plugin.
+    /// Unloads every plugin and drops the successfully unloaded ones.
     void unloadAllPlugins();
 
-    /**
-   * @brief Finds a plugin’s UUID by its name.
-   * @param name  The plugin name (case‑sensitive).
-   * @return The plugin’s UUID, or a null UUID if not found.
-   */
+    /// UUID of the first plugin named @p name, or a null UUID if not found.
     QUuid getPluginByName(const QString &name) const;
 
-    /**
-   * @brief Returns the plugin instance for a given UUID.
-   * @param id  The plugin’s unique ID.
-   * @return A pointer to the plugin, or @c nullptr if not found.
-   */
+    /// Plugin instance for @p id, or null if not registered.
     WPlugin *getPluginById(const QUuid &id) const;
 
-    /**
-   * @brief Returns all currently registered plugin instances.
-   * @return A vector of raw WPlugin pointers.
-   */
+    /// Raw pointers to all registered plugins (ownership stays with callers).
     QVector<WPlugin *> allPluginsInst() const;
 
     /**
-   * @brief Stores a metadata value in the manager’s persistent storage.
-   * @param id     The plugin’s UUID.
-   * @param key    The metadata key.
-   * @param value  The new value.
-   * @return The value that should actually be stored (e.g. a name
-   *         that has been made unique).
-   *
-   * If the key is `Plugin::Name`, the manager ensures the resulting
-   * name is unique by appending '#' characters if necessary.
-   */
+     * @brief Stores a metadata value, returning the value actually kept.
+     * @param id    Plugin instance UUID.
+     * @param key   Metadata key.
+     * @param value Requested value.
+     * @return For Plugin::Name, a unique name derived from @p value; for any
+     *         other key, @p value unchanged.
+     */
     QVariant setPluginData(const QUuid &id, const QString &key,
                            const QVariant &value);
 
-    /**
-   * @brief Finds plugins whose metadata matches a given key/value pair.
-   * @param key    Metadata key.
-   * @param value  Desired value.
-   * @return UUIDs of all matching plugins.
-   */
+    /// UUIDs of all plugins whose @p key metadata equals @p value.
     QVector<QUuid> getPluginByAttr(const QString &key,
                                    const QVariant &value) const;
 
-    /**
-   * @brief Returns the UUIDs of all registered plugins.
-   * @return A vector of UUIDs.
-   */
+    /// UUIDs of all registered plugins.
     QVector<QUuid> allPluginsId() const;
 
 public slots:
     /**
-   * @brief Delivers a message to the plugin whose name matches WMessage::dest.
-   * @param msg  The message to deliver.
-   * @return @c true if the target plugin was found and could process the
-   * message.
-   */
+     * @brief Delivers @p msg to the plugin named WMessage::dest.
+     * @return true if the target plugin exists and has a valid interface.
+     */
     bool sendMsg(we::WMessage &msg);
 
 private:
@@ -182,7 +149,6 @@ private:
 
 } // namespace we
 
-// Allow storage of the pointer inside QVariant.
 Q_DECLARE_METATYPE(we::WPluginManager *)
 
 #endif // PLUGINMANAGER_H

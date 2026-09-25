@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -21,13 +21,24 @@
 #define WCONFIG_H
 
 #include "WConfigDocument.h"
+#include "WConfigStorage.h"
 #include "WECore/def/wedef.h"
 #include <QObject>
 #include <QReadWriteLock>
 #include <QSettings>
+#include <memory>
 
 namespace we::config {
 
+/**
+ * @brief Thread-safe entry point for reading and writing a configuration tree.
+ *
+ * Owns a WConfigDocument (in-memory tree) plus one storage backend (file or
+ * QSettings) chosen by initialize(). The non-Direct getters/setters take a
+ * recursive read/write lock internally, so they may be called from any thread;
+ * the *Direct variants assume the caller already holds the lock or runs
+ * single-threaded.
+ */
 class WE_EXPORT WConfig : public QObject {
     Q_OBJECT
 public:
@@ -40,6 +51,9 @@ public:
                     WConfigTemplate *configTemplate = nullptr);
     WConfigDocument *document() const { return m_document; }
 
+    // Direct variants take no read/write lock, for callers that already hold
+    // the lock or run single-threaded. Non-Direct variants acquire m_lock
+    // internally and can be called directly from any thread.
     QVariant getValueDirect(const QString &path) const;
     bool setValueDirect(const QString &path, const QVariant &value,
                         bool force = false);
@@ -50,13 +64,18 @@ public:
 
     WConfigItemInfo getInfo(const QString &path) const;
     bool hasProperty(const QString &path, Property prop) const;
+    // Set/clear a property at runtime; triggers data->setPropertyRuntime + configChanged
+    bool setItemProperty(const QString &path, Property prop, bool on);
+    bool setItemReadOnly(const QString &path, bool on);
+    bool setItemRestartRequired(const QString &path, bool on);
 
+    // Root document lock: used for cross-thread config item access (recursive)
     QReadWriteLock *lock() const { return &m_lock; }
     QSharedPointer<WConfigItemRef> createItemRef(const QString &path);
     QSharedPointer<WConfigDirRef> createDirRef(const QString &path);
 
-    bool save();                          // 支持存储在QSettings中
-    bool saveAs(const QString &filePath); // 只支持文件
+    bool save();                          // writes through the configured backend (file or QSettings)
+    bool saveAs(const QString &filePath); // always writes to a file
     QStringList lastSaveErrors() const;
     void resetToDefaults();
 
@@ -68,9 +87,9 @@ signals:
     void configChanged(we::config::WConfigDataBase *data);
 
 private:
-    QSettings *m_settings = nullptr; // 只用于以传入setting的初始化的读取/保存
+    /// Current storage backend (file or QSettings), chosen by initialize()
+    std::unique_ptr<WConfigStorage> m_storage;
     WConfigDocument *m_document = nullptr;
-    QString m_currentFilePath;
     bool m_hasRestartRequiredChanges;
     QStringList m_lastSaveErrors;
     mutable QReadWriteLock m_lock;

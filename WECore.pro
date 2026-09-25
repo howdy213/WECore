@@ -49,14 +49,21 @@ HEADERS += \
     include/WECore/config/WConfigEditorBase.h \
     include/WECore/config/WConfigEditorBool.h \
     include/WECore/config/WConfigEditorDef.h \
+    include/WECore/config/WConfigEditorCustom.h \
     include/WECore/config/WConfigEditorDouble.h \
     include/WECore/config/WConfigEditorInt.h \
     include/WECore/config/WConfigEditorObject.h \
     include/WECore/config/WConfigEditorSelect.h \
     include/WECore/config/WConfigEditorString.h \
+    include/WECore/config/WConfigCustomBuiltins.h \
+    include/WECore/config/WConfigCustomType.h \
+    include/WECore/config/WConfigDataCustom.h \
+    include/WECore/config/WConfigGroupWidget.h \
     include/WECore/config/WConfigItemInfo.h \
     include/WECore/config/WConfigItemWidget.h \
+    include/WECore/config/WConfigLayout.h \
     include/WECore/config/WConfigRef.h \
+    include/WECore/config/WConfigStorage.h \
     include/WECore/config/WConfigTemplate.h \
     include/WECore/config/WConfigViewer.h \
     include/WECore/config/WConfigWidget.h \
@@ -102,8 +109,14 @@ SOURCES += \
     src/config/WConfigEditorObject.cpp \
     src/config/WConfigEditorSelect.cpp \
     src/config/WConfigEditorString.cpp \
+    src/config/WConfigEditorCustom.cpp \
+    src/config/WConfigCustomType.cpp \
+    src/config/WConfigDataCustom.cpp \
+    src/config/WConfigCustomBuiltins.cpp \
+    src/config/WConfigGroupWidget.cpp \
     src/config/WConfigItemWidget.cpp \
     src/config/WConfigRef.cpp \
+    src/config/WConfigStorage.cpp \
     src/config/WConfigTemplate.cpp \
     src/config/WConfigViewer.cpp \
     src/config/WConfigWidget.cpp \
@@ -116,9 +129,17 @@ SOURCES += \
     src/plugin/wpluginstatemachine.cpp \
     src/plugin/wvirtualplugin.cpp \
     src/service/wserviceregistry.cpp \
-    src/service/wserviceproxy.cpp \
     src/we/we.cpp \
     src/we/webase.cpp \
     src/we/webasedata.cpp \
     src/we/weclass.cpp \
     src/widget/wwidgetmanager.cpp
+
+# Run lupdate / lrelease from Qt Creator (Tools > External > Linguist) to
+# regenerate the .ts and build the .qm from it.
+TRANSLATIONS += \
+    translations/WECore_zh_CN.ts
+
+# Build the .qm files and embed them into the library resources as
+# ":/i18n/WECore_<locale>.qm", so the application can load them at runtime.
+CONFIG += lrelease embed_translations

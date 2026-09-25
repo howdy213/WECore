@@ -3,8 +3,8 @@
  * @brief Implementation of WPath.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -33,16 +33,12 @@ using namespace we::Consts;
 
 namespace we {
 
-/**
- * @brief Private data for WPath.
- *
- * Stores a weak reference to WEBase and the current module name.
- */
+/// Private data of WPath.
 class WPathPrivate
 {
 public:
-    QString moduleName;   ///< Name of the current module (unused in this version).
-    WEBase *we = nullptr; ///< Pointer to the application base.
+    QString moduleName;   ///< Reserved; currently unused.
+    WEBase *we = nullptr; ///< Application base used for plugin lookups; may be null.
 };
 
 WPath::WPath(WEBase *we)

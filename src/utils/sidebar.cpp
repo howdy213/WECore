@@ -1,7 +1,10 @@
 /**
+ * @file sidebar.cpp
+ * @brief Implementation of SideBar.
+ *
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -31,7 +34,7 @@ void SideBar::setBtnCount(unsigned int count){
     gridLayout->setContentsMargins(0, 0, 0, -1);
     for(unsigned int i=0;i<=count-1;i++){
         QToolButton* btn=new QToolButton(this);
-        btn->setStyleSheet(QString::fromUtf8("/* \351\273\230\350\256\244 */\n"
+        btn->setStyleSheet(QString::fromUtf8("/* default */\n"
                                              "QToolButton{   \n"
                                              "	font: 25 11pt \"Microsoft YaHei\";\n"
                                              "	color:rgb(120, 120, 120);\n"
@@ -44,12 +47,12 @@ void SideBar::setBtnCount(unsigned int count){
                                              "	background-color:rgb(240,240,240);\n"
                                              "}\n"
                                              "\n"
-                                             "/* \351\274\240\346\240\207\346\202\254\345\201\234 */\n"
+                                             "/* hover */\n"
                                              "QToolButton:hover{\n"
                                              "	background-color:rgb(225, 225, 225) ;\n"
                                              "}\n"
                                              "\n"
-                                             "/* \347\202\271\345\207\273\345\222\214\346\214\211\344\270\213 */\n"
+                                             "/* pressed and checked */\n"
                                              "QToolButton:pressed,QToolButton:checked{\n"
                                              "	border-left: 2px outset rgb(100, 100, 100);\n"
                                              "	background-color: rgb(210, 210, 210);\n"

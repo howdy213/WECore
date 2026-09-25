@@ -1,7 +1,7 @@
 /**
  * @author howdy213
- * @date 2026-08-08
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -47,7 +47,7 @@ void WConfigEditorDouble::createEditor() {
 }
 
 void WConfigEditorDouble::setConfigData(WConfigDataBase *data) {
-    auto *doubleData = static_cast<WConfigDataDouble *>(data);
+    auto *doubleData = dynamic_cast<WConfigDataDouble *>(data);
     if (doubleData) {
         m_data = data;
         int decimals = doubleData->decimalPlaces();
@@ -67,5 +67,13 @@ WConfigDataDouble *WConfigEditorDouble::getData() {
 }
 
 WConfigDataBase *WConfigEditorDouble::configData() { return getData(); }
+
+void WConfigEditorDouble::refreshFromData() {
+    if (m_data) {
+        auto *doubleData = static_cast<WConfigDataDouble *>(m_data);
+        m_doubleSpin->setDecimals(doubleData->decimalPlaces());
+        m_doubleSpin->setValue(doubleData->toVariant().toDouble());
+    }
+}
 
 } // namespace we::config

@@ -1,15 +1,11 @@
 /**
  * @file wpluginmessage.h
- * @brief Defines the WMessage struct used for inter‑plugin and manager communication.
- *
- * WMessage is a lightweight message object that carries a command, a source
- * and destination identifier, a payload map of key‑value pairs, and an
- * optional sender/receiver QObject. It is registered with the Qt meta‑type
- * system so that it can be used inside signal/slot connections and QVariant.
+ * @brief Defines the WMessage struct used for inter-plugin and manager
+ * communication.
  *
  * @author howdy213
- * @date 2026-05-01
- * @version 2.0.0
+ * @date 2026-09-25
+ * @version 2.1.0
  *
  * Copyright 2025-2026 howdy213
  *
@@ -36,27 +32,19 @@
 namespace we {
 
 /**
- * @brief Represents a message exchanged between plugins and the plugin manager.
+ * @brief Lightweight message exchanged between plugins and the manager.
  *
- * The struct contains:
- * - A sender identifier (`from`), typically a plugin name or ID.
- * - A destination identifier (`dest`), which is used by the manager to route the message.
- * - A `command` string that describes the action to perform.
- * - A numerical `type` that can further categorize the message.
- * - A key‑value `map` for arbitrary payload data.
- * - An optional `object` pointer to a QObject sender/receiver.
- *
- * @note This struct is registered with Q_DECLARE_METATYPE so it can be stored
- *       in QVariant and transmitted across queued connections.
+ * @note Registered with Q_DECLARE_METATYPE, so it can be stored in a QVariant
+ *       and sent through queued connections.
  */
 struct WMessage
 {
-    QString from;                   ///< Identifier of the sender.
-    QString dest;                   ///< Identifier of the intended recipient.
-    QString command;                ///< Action the recipient should perform.
-    int type = 0;                   ///< Numeric message type, application‑specific.
-    QMap<QString, QVariant> map;    ///< Payload data as key‑value pairs.
-    QObject *object = nullptr;      ///< Optional QObject associated with the message.
+    QString from;                ///< Sender identifier (plugin name or ID).
+    QString dest;                ///< Recipient plugin name; the manager routes by this.
+    QString command;             ///< Action the recipient should perform.
+    int type = 0;                ///< Application-defined message category.
+    QMap<QString, QVariant> map; ///< Payload data as key-value pairs.
+    QObject *object = nullptr;   ///< Optional associated QObject.
 };
 
 } // namespace we

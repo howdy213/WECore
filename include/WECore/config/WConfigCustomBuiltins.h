@@ -23,6 +23,7 @@
 #include "WECore/def/wedef.h"
 #include "WConfigCustomType.h"
 #include <QLineEdit>
+#include <QPushButton>
 #include <QWidget>
 
 namespace we::config {
@@ -50,7 +51,30 @@ private:
     bool m_directory = true;
 };
 
-// Registers the built-in custom types (such as "path"). Called on first use of the registry instance().
+// Color picker editor: a #RRGGBB value in a line edit, next to a swatch that opens QColorDialog.
+class WE_EXPORT WConfigColorEditor : public QWidget, public WCustomEditorInterface {
+    Q_OBJECT
+public:
+    explicit WConfigColorEditor(QWidget *parent = nullptr);
+
+    QVariant editValue() const override;           // Returns the current color as "#rrggbb"
+    void setEditValue(const QVariant &v) override; // Sets the color (does not emit valueEdited)
+
+signals:
+    void valueEdited();
+
+private slots:
+    void onPick();
+
+private:
+    void updateSwatch();
+
+    QLineEdit *m_edit = nullptr;
+    QPushButton *m_swatch = nullptr;
+};
+
+// Registers the built-in custom types (such as "path" and "color"). Called on
+// first use of the registry instance().
 WE_EXPORT void registerBuiltinCustomTypes();
 
 } // namespace we::config

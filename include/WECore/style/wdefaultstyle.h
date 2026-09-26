@@ -34,10 +34,11 @@ namespace we::style {
  * what other styles changed, which also makes it the fallback whenever a style
  * cannot be applied. With a non-empty key it switches to that key inside
  * QStyleFactory, covering Qt's built-in styles as well as any style plugin
- * installed for Qt (qlementine, for instance, but nothing here is specific to
- * it).
+ * installed for Qt, nothing here being specific to any of them.
  *
- * It has no light/dark themes of its own.
+ * It has no light/dark themes of its own. A plugin style that needs more than
+ * "paint with this plugin" is driven by an implementation of its own instead
+ * (WFluentUIStyle, for instance).
  */
 class WE_EXPORT WDefaultStyle : public WStyle {
     Q_OBJECT

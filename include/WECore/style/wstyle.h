@@ -6,13 +6,22 @@
  * either keeps the style the platform installed or switches to any style
  * QStyleFactory offers, that is Qt's own styles as well as every style plugin
  * installed for Qt, whichever plugin it happens to be. The QSS implementation
- * applies a built-in light/dark style sheet instead.
+ * applies a built-in light/dark style sheet instead. A style that needs more than
+ * "paint with this plugin" gets an implementation of its own, because the plugin
+ * can only be driven through application state that QStyleFactory knows nothing
+ * about: WFluentUIStyle sets up the FluentUI3 light/dark theme, its color theme
+ * and its accent color that way.
  *
  * The selection is stored in the "Style" section of the shared configuration
- * (StyleName / Theme / StyleFile / ThemeFile). A style holds no config of its
- * own: the caller builds that section from buildTemplate() into a sub-config of
- * its own and mounts it into the config that owns config.json, so a settings
- * dialog edits and persists the appearance together with the rest of the file.
+ * (StyleName / Theme / ColorTheme / StyleFile / ThemeFile, plus whatever an
+ * implementation adds). Which values Theme and ColorTheme accept is not fixed
+ * here: every implementation reports the ones it understands through
+ * themeOptions() and colorThemeOptions(), and buildTemplate() collects them, so a
+ * new implementation can widen the choice without this class knowing about it. A
+ * style holds no config of its own: the caller builds that section from
+ * buildTemplate() into a sub-config of its own and mounts it into the config that
+ * owns config.json, so a settings dialog edits and persists the appearance
+ * together with the rest of the file.
  *
  * @author howdy213
  * @date 2026-09-25
@@ -55,14 +64,22 @@ namespace we::style {
 /// Any other value stored there is the key of a style QStyleFactory provides.
 inline constexpr auto StyleDefault = "Default";
 inline constexpr auto StyleQss = "QSS";
+/// Key of the FluentUI3 style plugin. It is handled by WFluentUIStyle, which knows
+/// how that style is driven; every other plugin key is applied as it is.
+inline constexpr auto StyleFluentUI3 = "FluentUI3";
 
-/// Values of "Style/Theme"; styles that do not support themes ignore them.
+/// Values of "Style/Theme" that the implementations shipped here have in common;
+/// styles that do not support themes ignore the entry. Further values are
+/// possible: what buildTemplate() offers is whatever the implementations report.
 inline constexpr auto ThemeLight = "light";
 inline constexpr auto ThemeDark = "dark";
 
 /// Keys of the "Style" section inside config/config.json.
 inline constexpr auto KeyStyleName = "StyleName";
 inline constexpr auto KeyTheme = "Theme";
+/// Values come from the implementations, see colorThemeOptions(); a style without
+/// a color theme does not contribute any, and the entry is left out then.
+inline constexpr auto KeyColorTheme = "ColorTheme";
 inline constexpr auto KeyStyleFile = "StyleFile";
 inline constexpr auto KeyThemeFile = "ThemeFile";
 
@@ -94,8 +111,14 @@ public:
 
     /// Identifier of this implementation (one of the Style* constants).
     virtual QString styleName() const = 0;
-    /// Themes this implementation can switch between; empty if it has none.
+    /// Themes this implementation can switch between; empty if it has none. The
+    /// same values are the ones its static themeOptions() reports to
+    /// buildTemplate(), so the entry and the implementation never drift apart.
     virtual QStringList themes() const = 0;
+    /// Color themes this implementation offers on top of its theme; empty when it
+    /// has no such choice, which keeps the entry out of the template. The same
+    /// values are the ones its static colorThemeOptions() reports.
+    virtual QStringList colorThemes() const;
     /// Currently selected theme.
     virtual QString theme() const = 0;
     /// Applies the style to the whole application.
@@ -121,6 +144,13 @@ public:
      * config.json. The template has to stay alive as long as that config is used,
      * because the document only keeps a pointer to it.
      *
+     * The values offered for Theme and ColorTheme are not listed here: they are
+     * collected from the available implementations, because a template is built
+     * once, before a style is selected, and cannot be rebuilt when the selection
+     * changes. The entries therefore carry the union of what every available
+     * implementation understands, and a value belonging to a style that is not in
+     * use is ignored by the implementation actually installed.
+     *
      * @p path is the directory the section lives in: pass e.g. "Style" to declare
      * it as its own directory including its display name and directory policy, or
      * leave it empty to put the items in the root of @p tmpl.
@@ -132,6 +162,11 @@ public:
     bool applyFromValues(const QVariantMap &styleValues);
 
 protected:
+    /// Called by applyFromValues() with the whole "Style" section, after the
+    /// common entries were stored and before apply() runs. An implementation that
+    /// declares entries of its own in buildTemplate() picks them up here, which
+    /// keeps those entry names out of this base class.
+    virtual void readValues(const QVariantMap &styleValues);
     /// File selected as the full style sheet ("" = use the built-in one).
     QString styleFile() const { return m_styleFile; }
     /// File selected as an override sheet loaded after the built-in one.

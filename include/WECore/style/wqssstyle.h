@@ -45,6 +45,12 @@ public:
     bool apply() override;
     bool setTheme(const QString &theme) override;
 
+    /// Themes this implementation can be switched to. WStyle::buildTemplate()
+    /// asks for them before any instance exists, because a template is built once
+    /// and cannot be rebuilt when another style is selected; themes() reports the
+    /// same values.
+    static QStringList themeOptions();
+
 private:
     /// Style sheet to install: selected files if any, otherwise the built-in
     /// sheet for the current theme.

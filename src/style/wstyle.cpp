@@ -26,6 +26,7 @@
 #include "WECore/config/WConfigItemInfo.h"
 #include "WECore/config/WConfigTemplate.h"
 #include "WECore/style/wdefaultstyle.h"
+#include "WECore/style/wfluentstyle.h"
 #include "WECore/style/wqssstyle.h"
 
 #include <QApplication>
@@ -85,6 +86,12 @@ WStyle *WStyle::create(const QString &styleName) {
     } else if (styleName.compare(QString::fromLatin1(StyleDefault),
                                  Qt::CaseInsensitive) == 0) {
         style = new WDefaultStyle;
+    } else if (styleName.compare(QString::fromLatin1(StyleFluentUI3),
+                                 Qt::CaseInsensitive) == 0 &&
+               !pluginStyleKey(QString::fromLatin1(StyleFluentUI3)).isEmpty()) {
+        // Only picked when the plugin is really there: without it the style cannot
+        // be created, and the generic path below reports that with a warning.
+        style = new WFluentUIStyle;
     } else {
         // Anything else is expected to be a Qt style: a built-in one or one
         // provided by an installed style plugin. WDefaultStyle applies it, so no
@@ -113,15 +120,44 @@ void WStyle::buildTemplate(we::config::WConfigTemplate &tmpl,
                        .displayName(tr("Style"))
                        .description(tr("Selects how the application is painted"))
                        .options(availableStyles()));
+
+    // Which values Theme and ColorTheme accept is decided by the implementations,
+    // not by a list kept here: what this collects is what they report.
+    QStringList themeOptions = WQssStyle::themeOptions();
+    QStringList colorThemeOptions;
+    // Only present when the plugin is installed for Qt: without the dll the style
+    // cannot be selected either, and the entries would be dead weight.
+    const bool fluentAvailable =
+        !pluginStyleKey(QString::fromLatin1(StyleFluentUI3)).isEmpty();
+    if (fluentAvailable) {
+        // A value both styles understand is listed once, in the order the first
+        // implementation offering it reports.
+        for (const QString &theme : WFluentUIStyle::themeOptions()) {
+            if (!themeOptions.contains(theme, Qt::CaseInsensitive))
+                themeOptions << theme;
+        }
+        colorThemeOptions = WFluentUIStyle::colorThemeOptions();
+    }
+
     tmpl.addSelect(path, QString::fromLatin1(KeyTheme),
                    we::config::WConfigItemInfo()
                        .defaultValue(QString::fromLatin1(ThemeLight))
                        .displayName(tr("Theme"))
-                       .description(tr("Light or dark appearance; styles without "
-                                       "themes ignore this"))
-                       .options(QStringList()
-                                << QString::fromLatin1(ThemeLight)
-                                << QString::fromLatin1(ThemeDark)));
+                       .description(tr("Appearance variant of the selected style; "
+                                       "styles without themes ignore this"))
+                       .options(themeOptions));
+    if (!colorThemeOptions.isEmpty()) {
+        // The first value an implementation reports for it is its default, so no
+        // color theme has to be named here.
+        tmpl.addSelect(path, QString::fromLatin1(KeyColorTheme),
+                       we::config::WConfigItemInfo()
+                           .defaultValue(colorThemeOptions.first())
+                           .displayName(tr("Color theme"))
+                           .description(tr("Color family of the selected style"))
+                           .options(colorThemeOptions));
+    }
+    if (fluentAvailable)
+        WFluentUIStyle::buildTemplate(tmpl, path);
     tmpl.addCustom(path, QString::fromLatin1(KeyStyleFile),
                    we::config::WConfigItemInfo()
                        .defaultValue(QString())
@@ -163,7 +199,15 @@ bool WStyle::applyFromValues(const QVariantMap &styleValues) {
         setTheme(styleValues.value(QString::fromLatin1(KeyTheme)).toString());
     m_styleFile = styleValues.value(QString::fromLatin1(KeyStyleFile)).toString();
     m_themeFile = styleValues.value(QString::fromLatin1(KeyThemeFile)).toString();
+    readValues(styleValues);
     return apply();
+}
+
+// Most styles have no color theme to offer, so they do not have to say so.
+QStringList WStyle::colorThemes() const { return QStringList(); }
+
+void WStyle::readValues(const QVariantMap &styleValues) {
+    Q_UNUSED(styleValues);
 }
 
 bool WStyle::selectStyleFile(QWidget *parent, we::config::WConfig *section) {

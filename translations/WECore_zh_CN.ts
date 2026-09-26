@@ -376,6 +376,24 @@ Delete it?</source>
     </message>
 </context>
 <context>
+    <name>we::config::WConfigColorEditor</name>
+    <message>
+        <location filename="../src/config/WConfigCustomBuiltins.cpp" line="74"/>
+        <source>#rrggbb</source>
+        <translation>#rrggbb</translation>
+    </message>
+    <message>
+        <location filename="../src/config/WConfigCustomBuiltins.cpp" line="78"/>
+        <source>Choose a color</source>
+        <translation>选择颜色</translation>
+    </message>
+    <message>
+        <location filename="../src/config/WConfigCustomBuiltins.cpp" line="108"/>
+        <source>Select Color</source>
+        <translation>选择颜色</translation>
+    </message>
+</context>
+<context>
     <name>we::config::WConfigEditorArray</name>
     <message>
         <location filename="../src/config/WConfigEditorArray.cpp" line="39"/>
@@ -643,22 +661,22 @@ Value: %2</source>
 <context>
     <name>we::config::WConfigPathEditor</name>
     <message>
-        <location filename="../src/config/WConfigCustomBuiltins.cpp" line="30"/>
+        <location filename="../src/config/WConfigCustomBuiltins.cpp" line="31"/>
         <source>Browse...</source>
         <translation>浏览...</translation>
     </message>
     <message>
-        <location filename="../src/config/WConfigCustomBuiltins.cpp" line="32"/>
+        <location filename="../src/config/WConfigCustomBuiltins.cpp" line="33"/>
         <source>...</source>
         <translation>...</translation>
     </message>
     <message>
-        <location filename="../src/config/WConfigCustomBuiltins.cpp" line="63"/>
+        <location filename="../src/config/WConfigCustomBuiltins.cpp" line="64"/>
         <source>Select Directory</source>
         <translation>选择目录</translation>
     </message>
     <message>
-        <location filename="../src/config/WConfigCustomBuiltins.cpp" line="64"/>
+        <location filename="../src/config/WConfigCustomBuiltins.cpp" line="65"/>
         <source>Select File</source>
         <translation>选择文件</translation>
     </message>
@@ -844,66 +862,89 @@ Value: %3</source>
     </message>
 </context>
 <context>
+    <name>we::style::WFluentUIStyle</name>
+    <message>
+        <location filename="../src/style/wfluentstyle.cpp" line="82"/>
+        <source>Accent color</source>
+        <translation>强调色</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wfluentstyle.cpp" line="83"/>
+        <source>Overrides the accent color of the color theme; empty keeps it</source>
+        <translation>覆盖配色主题自带的强调色；留空则沿用</translation>
+    </message>
+</context>
+<context>
     <name>we::style::WStyle</name>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="123"/>
-        <location filename="../src/style/wstyle.cpp" line="147"/>
+        <location filename="../src/style/wstyle.cpp" line="120"/>
+        <location filename="../src/style/wstyle.cpp" line="173"/>
         <source>Style</source>
         <translation>样式</translation>
     </message>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="124"/>
+        <location filename="../src/style/wstyle.cpp" line="121"/>
         <source>Selects how the application is painted</source>
         <translation>选择应用的整体渲染方式</translation>
     </message>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="129"/>
+        <location filename="../src/style/wstyle.cpp" line="145"/>
         <source>Theme</source>
         <translation>主题</translation>
     </message>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="130"/>
-        <source>Light or dark appearance; styles without themes ignore this</source>
-        <translation>浅色或深色外观；不支持主题的样式会忽略此项</translation>
+        <location filename="../src/style/wstyle.cpp" line="146"/>
+        <source>Appearance variant of the selected style; styles without themes ignore this</source>
+        <translation>所选样式的外观变体；不支持主题的样式会忽略此项</translation>
     </message>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="138"/>
+        <location filename="../src/style/wstyle.cpp" line="155"/>
+        <source>Color theme</source>
+        <translation>配色主题</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="156"/>
+        <source>Color family of the selected style</source>
+        <translation>所选样式使用的配色系列</translation>
+    </message>
+    <message>
+        <location filename="../src/style/wstyle.cpp" line="164"/>
         <source>Style file</source>
         <translation>样式文件</translation>
     </message>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="139"/>
+        <location filename="../src/style/wstyle.cpp" line="165"/>
         <source>Style sheet replacing the built-in theme</source>
         <translation>替换内置主题的样式表</translation>
     </message>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="144"/>
+        <location filename="../src/style/wstyle.cpp" line="170"/>
         <source>Theme file</source>
         <translation>主题文件</translation>
     </message>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="145"/>
+        <location filename="../src/style/wstyle.cpp" line="171"/>
         <source>Style sheet loaded after the built-in theme</source>
         <translation>在内置主题之后加载的样式表</translation>
     </message>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="147"/>
+        <location filename="../src/style/wstyle.cpp" line="173"/>
         <source>Application appearance</source>
         <translation>应用外观</translation>
     </message>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="189"/>
+        <location filename="../src/style/wstyle.cpp" line="215"/>
         <source>Select Style File</source>
         <translation>选择样式文件</translation>
     </message>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="190"/>
-        <location filename="../src/style/wstyle.cpp" line="201"/>
+        <location filename="../src/style/wstyle.cpp" line="216"/>
+        <location filename="../src/style/wstyle.cpp" line="228"/>
         <source>Qt Style Sheets (*.qss);;All Files (*)</source>
         <translation>Qt 样式表 (*.qss);;所有文件 (*)</translation>
     </message>
     <message>
-        <location filename="../src/style/wstyle.cpp" line="200"/>
+        <location filename="../src/style/wstyle.cpp" line="227"/>
         <source>Select Theme File</source>
         <translation>选择主题文件</translation>
     </message>

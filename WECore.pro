@@ -86,6 +86,7 @@ HEADERS += \
     include/WECore/service/wserviceproxy.h \
     include/WECore/style/wstyle.h \
     include/WECore/style/wdefaultstyle.h \
+    include/WECore/style/wfluentstyle.h \
     include/WECore/style/wqssstyle.h \
     include/WECore/we/we.h \
     include/WECore/we/webase.h \
@@ -140,6 +141,7 @@ SOURCES += \
     src/service/wserviceregistry.cpp \
     src/style/wstyle.cpp \
     src/style/wdefaultstyle.cpp \
+    src/style/wfluentstyle.cpp \
     src/style/wqssstyle.cpp \
     src/we/we.cpp \
     src/we/webase.cpp \

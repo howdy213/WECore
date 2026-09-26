@@ -19,6 +19,7 @@
  */
 #include "WECore/config/WConfigCustomBuiltins.h"
 #include "WECore/config/WConfigCustomType.h"
+#include <QColorDialog>
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QPushButton>
@@ -68,6 +69,59 @@ void WConfigPathEditor::onBrowse() {
     emit valueEdited();
 }
 
+WConfigColorEditor::WConfigColorEditor(QWidget *parent) : QWidget(parent) {
+    m_edit = new QLineEdit(this);
+    m_edit->setPlaceholderText(tr("#rrggbb"));
+    m_edit->setClearButtonEnabled(true);
+    m_swatch = new QPushButton(this);
+    m_swatch->setFixedWidth(40);
+    m_swatch->setToolTip(tr("Choose a color"));
+    connect(m_swatch, &QPushButton::clicked, this, &WConfigColorEditor::onPick);
+    // Manual editing should also be treated as a value change
+    connect(m_edit, &QLineEdit::textChanged, this, [this](const QString &) {
+        updateSwatch();
+        emit valueEdited();
+    });
+
+    QHBoxLayout *layout = new QHBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->addWidget(m_edit, 1);
+    layout->addWidget(m_swatch);
+    setLayout(layout);
+}
+
+QVariant WConfigColorEditor::editValue() const { return m_edit->text(); }
+
+void WConfigColorEditor::setEditValue(const QVariant &v) {
+    QString text = v.toString();
+    if (m_edit->text() == text)
+        return;
+    m_edit->blockSignals(true);
+    m_edit->setText(text);
+    m_edit->blockSignals(false);
+    updateSwatch();
+}
+
+void WConfigColorEditor::onPick() {
+    const QColor current(m_edit->text());
+    const QColor picked = QColorDialog::getColor(
+        current.isValid() ? current : QColor(Qt::blue), this, tr("Select Color"));
+    if (!picked.isValid())
+        return;
+    setEditValue(picked.name(QColor::HexRgb));
+    emit valueEdited();
+}
+
+void WConfigColorEditor::updateSwatch() {
+    // An empty or malformed value means "not set", so the swatch stays plain then
+    const QColor color(m_edit->text());
+    m_swatch->setStyleSheet(
+        color.isValid()
+            ? QStringLiteral("background-color: %1; border: 1px solid palette(mid)")
+                  .arg(color.name())
+            : QString());
+}
+
 void registerBuiltinCustomTypes() {
     WConfigCustomTypeRegistry &reg = WConfigCustomTypeRegistry::instance();
 
@@ -84,6 +138,20 @@ void registerBuiltinCustomTypes() {
         return static_cast<QWidget *>(editor);
     };
     reg.registerType(path);
+
+    WConfigCustomType color;
+    color.typeName = QStringLiteral("color");
+    color.serialize = [](const QVariant &v) { return v.toString(); };
+    color.deserialize = [](const QVariant &v) { return v.toString(); };
+    color.defaultValue = QString();
+    color.displayString = [](const QVariant &v) { return v.toString(); };
+    color.editorFactory = [](QWidget *parent, WCustomEditorInterface **out) {
+        WConfigColorEditor *editor = new WConfigColorEditor(parent);
+        if (out)
+            *out = editor;
+        return static_cast<QWidget *>(editor);
+    };
+    reg.registerType(color);
 }
 
 } // namespace we::config

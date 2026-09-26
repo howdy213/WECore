@@ -290,10 +290,12 @@ WQssStyle::WQssStyle(QObject *parent) : WStyle(parent) {}
 
 QString WQssStyle::styleName() const { return QString::fromLatin1(StyleQss); }
 
-QStringList WQssStyle::themes() const {
+QStringList WQssStyle::themeOptions() {
     return QStringList() << QString::fromLatin1(ThemeLight)
                          << QString::fromLatin1(ThemeDark);
 }
+
+QStringList WQssStyle::themes() const { return themeOptions(); }
 
 QString WQssStyle::theme() const { return m_theme; }
 

@@ -344,6 +344,14 @@ void WConfigWidget::makeGroupWidget(WConfigViewer *viewer, WConfigGroupSpec *g) 
     // Hook so group members get item adjusters applied on every (re)build.
     groupWidget->setItemHook([this](WConfigItemWidget *w, const QString &key) {
         applyItemAdjuster(w, key);
+        // A group's valueChanged() carries no item, so the notification is wired up
+        // per member, where the item is known. Members rebuilt later go through this
+        // hook again.
+        WConfigDataBase *data = w->configData();
+        if (data) {
+            connect(w, &WConfigItemWidget::valueChanged, this,
+                    [this, data]() { onTemporaryValueChanged(data); });
+        }
     });
     // The constructor already created one round of members; adjust those now.
     for (auto *w : groupWidget->memberWidgets()) {
@@ -370,7 +378,30 @@ void WConfigWidget::makeItemWidget(WConfigViewer *viewer, WConfigDataBase *data)
             [this](WConfigItemWidget *w) { selectItemWidget(w); });
     connect(itemWidget, &WConfigItemWidget::valueChanged, this,
             &WConfigWidget::updateRestartPrompt);
+    connect(itemWidget, &WConfigItemWidget::valueChanged, this,
+            [this, data]() { onTemporaryValueChanged(data); });
     applyItemAdjuster(itemWidget, data->key());
+}
+
+void WConfigWidget::setTemporaryChangeCallback(WConfigTemporaryChange callback) {
+    m_temporaryChangeCallback = callback;
+}
+
+void WConfigWidget::onTemporaryValueChanged(WConfigDataBase *data) {
+    // Every rule is checked, not only the ones pointing at @p data: an item reads
+    // the value it follows from the data tree, so any edit can be its trigger.
+    refreshItemVisibility();
+    if (m_temporaryChangeCallback)
+        m_temporaryChangeCallback(data);
+}
+
+void WConfigWidget::refreshItemVisibility() {
+    for (WConfigItemWidget *w : m_itemWidgets)
+        w->updateVisibility();
+    for (WConfigGroupWidget *g : m_groupWidgets) {
+        for (WConfigItemWidget *w : g->memberWidgets())
+            w->updateVisibility();
+    }
 }
 
 void WConfigWidget::forEachConfigData(

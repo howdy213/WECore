@@ -82,7 +82,12 @@ void WFluentUIStyle::buildTemplate(we::config::WConfigTemplate &tmpl,
                        .displayName(tr("Accent color"))
                        .description(tr("Overrides the accent color of the color "
                                        "theme; empty keeps it"))
-                       .defaultItem(QStringLiteral("color")));
+                       .defaultItem(QStringLiteral("color"))
+                       // Only this implementation reads it, so it is shown while
+                       // this style is the selected one.
+                       .visibleWhen(QString::fromLatin1(KeyStyleName),
+                                    QStringList()
+                                        << QString::fromLatin1(StyleFluentUI3)));
 }
 
 void WFluentUIStyle::readValues(const QVariantMap &styleValues) {

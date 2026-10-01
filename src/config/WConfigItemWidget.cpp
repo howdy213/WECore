@@ -29,6 +29,8 @@
 #include "WECore/config/WConfigEditorString.h"
 #include "WECore/config/WConfigLayout.h"
 #include "WECore/config/WConfigRef.h"
+#include "WECore/config/WConfigViewer.h"
+#include <QDebug>
 #include <QFont>
 #include <QHBoxLayout>
 #include <QMessageBox>
@@ -152,6 +154,38 @@ WConfigItemWidget::WConfigItemWidget(WConfigDataBase *data,
         connect(m_editor, &WConfigEditorBase::valueChanged, this,
                 &WConfigItemWidget::valueChanged);
     }
+
+    resolveVisibilityRule();
+    updateVisibility();
+}
+
+void WConfigItemWidget::resolveVisibilityRule() {
+    const QString path = m_data->info().visibleWhenPath();
+    if (path.isEmpty())
+        return;
+    // The rule points at an item of the same directory, so the parent viewer is
+    // what the path is resolved against.
+    WConfigViewer *parent = m_data->parent();
+    m_visibilitySource = parent ? parent->findConfigData(path) : nullptr;
+    if (!m_visibilitySource) {
+        qWarning() << "WConfigItemWidget:" << m_data->key()
+                   << "is shown depending on an item that does not exist:" << path;
+        return;
+    }
+    m_visibilityValues = m_data->info().visibleWhenValues();
+}
+
+void WConfigItemWidget::updateVisibility() {
+    if (!m_visibilitySource || m_visibilityValues.isEmpty())
+        return;
+    // The temporary value is what the user has selected, saved or not, and the
+    // selection is what the dependent items have to follow.
+    const QString value = m_visibilitySource->getTemporary().toString();
+    const bool show = m_visibilityValues.contains(value, Qt::CaseInsensitive);
+    if (show == m_ruleShown)
+        return;
+    m_ruleShown = show;
+    setVisible(show);
 }
 
 void WConfigItemWidget::createButtons() {
@@ -249,6 +283,7 @@ void WConfigItemWidget::refresh() {
     }
     applyReadOnly();
     updateUndoVisibility();
+    updateVisibility();
 }
 
 void WConfigItemWidget::updateUndoVisibility() {

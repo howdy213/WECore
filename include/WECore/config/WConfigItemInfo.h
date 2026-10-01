@@ -22,14 +22,15 @@
 
 #include "WConfigDef.h"
 #include <QString>
+#include <QStringList>
 #include <QVariant>
 
 namespace we::config {
 
 // Metadata of a single config item: display name, description, element type (for
-// arrays), properties, decimal places, default value, option list and callback.
-// Built by the template or the caller and handed to WConfigDataBase. Setters
-// return *this to allow chaining.
+// arrays), properties, decimal places, default value, option list, callback and
+// the rule deciding when the item is shown. Built by the template or the caller
+// and handed to WConfigDataBase. Setters return *this to allow chaining.
 class WE_EXPORT WConfigItemInfo {
 public:
     WConfigItemInfo() = default;
@@ -81,6 +82,17 @@ public:
         m_callback = cb;
         return *this;
     }
+    // Shows this item only while the item at @p path holds one of @p values; @p
+    // path is relative to the directory the item lives in (a sibling's key, or
+    // "sub/key" below it). Without a rule the item is always shown. The value read
+    // is the temporary one, so the item follows the selection as the user makes it,
+    // before anything is saved; WConfigWidget re-evaluates it whenever the UI
+    // changes a temporary value.
+    WConfigItemInfo &visibleWhen(const QString &path, const QStringList &values) {
+        m_visibleWhenPath = path;
+        m_visibleWhenValues = values;
+        return *this;
+    }
     // Accessors
     QString displayName() const { return m_displayName; }
     QString description() const { return m_description; }
@@ -103,6 +115,9 @@ public:
     QVariant defaultValue() const { return m_defaultValue; }
     QStringList options() const { return m_options; }
     ActionCallback callback() const { return m_callback; }
+    // Rule set by visibleWhen(): empty path means the item is always shown.
+    QString visibleWhenPath() const { return m_visibleWhenPath; }
+    QStringList visibleWhenValues() const { return m_visibleWhenValues; }
 
 protected:
     friend class WConfigDataBase;
@@ -115,6 +130,8 @@ protected:
     QVariant m_defaultValue;
     QStringList m_options;
     ActionCallback m_callback;
+    QString m_visibleWhenPath;
+    QStringList m_visibleWhenValues;
 };
 
 } // namespace we::config

@@ -23,6 +23,7 @@
 #include "WConfigDataBase.h"
 #include "WConfigEditorBase.h"
 #include <QLabel>
+#include <QStringList>
 #include <QToolButton>
 #include <QVariant>
 #include <QWidget>
@@ -64,6 +65,12 @@ public:
     void setStyleTooltip();
     // Caller-driven refresh: editor re-reads data, read-only re-applied, undo visibility updated.
     void refresh();
+    // Applies the rule set with WConfigItemInfo::visibleWhen(): the item is shown
+    // while the item it depends on holds one of the listed temporary values. Does
+    // nothing without a rule. WConfigWidget calls this whenever the UI changes a
+    // temporary value, because the item that changed is not necessarily the one the
+    // rule points at.
+    void updateVisibility();
 signals:
     void clicked(we::config::WConfigItemWidget *widget);
     void valueChanged();
@@ -79,6 +86,8 @@ private:
     WConfigEditorBase *createValueWidget();
     void createButtons(); // Create the reset/undo buttons (shared by Full's title row and Inline)
     void updateUndoVisibility();
+    // Resolves the item the visibility rule points at; run once, from the constructor.
+    void resolveVisibilityRule();
     void applyReadOnly();
     void applyTitleVisibility();
     QLabel *m_nameLabel = nullptr;
@@ -88,6 +97,11 @@ private:
     WConfigEditorBase *m_editor = nullptr;
     QToolButton *m_undoButton = nullptr;
     QSharedPointer<WConfigItemRef> m_itemRef;
+    // Visibility rule (see updateVisibility()): the item whose temporary value
+    // decides, the values that show this item, and the state last applied.
+    WConfigDataBase *m_visibilitySource = nullptr;
+    QStringList m_visibilityValues;
+    bool m_ruleShown = true;
     bool m_showTitle = true;
     bool m_showDesc = true;
 };

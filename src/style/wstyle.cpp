@@ -122,9 +122,13 @@ void WStyle::buildTemplate(we::config::WConfigTemplate &tmpl,
                        .options(availableStyles()));
 
     // Which values Theme and ColorTheme accept is decided by the implementations,
-    // not by a list kept here: what this collects is what they report.
+    // not by a list kept here: what this collects is what they report. The same
+    // report tells which styles an entry belongs to, so the sections below can be
+    // shown only while one of those styles is selected.
     QStringList themeOptions = WQssStyle::themeOptions();
+    QStringList themedStyles = QStringList() << QString::fromLatin1(StyleQss);
     QStringList colorThemeOptions;
+    QStringList colorThemeStyles;
     // Only present when the plugin is installed for Qt: without the dll the style
     // cannot be selected either, and the entries would be dead weight.
     const bool fluentAvailable =
@@ -136,7 +140,9 @@ void WStyle::buildTemplate(we::config::WConfigTemplate &tmpl,
             if (!themeOptions.contains(theme, Qt::CaseInsensitive))
                 themeOptions << theme;
         }
+        themedStyles << QString::fromLatin1(StyleFluentUI3);
         colorThemeOptions = WFluentUIStyle::colorThemeOptions();
+        colorThemeStyles << QString::fromLatin1(StyleFluentUI3);
     }
 
     tmpl.addSelect(path, QString::fromLatin1(KeyTheme),
@@ -145,7 +151,8 @@ void WStyle::buildTemplate(we::config::WConfigTemplate &tmpl,
                        .displayName(tr("Theme"))
                        .description(tr("Appearance variant of the selected style; "
                                        "styles without themes ignore this"))
-                       .options(themeOptions));
+                       .options(themeOptions)
+                       .visibleWhen(QString::fromLatin1(KeyStyleName), themedStyles));
     if (!colorThemeOptions.isEmpty()) {
         // The first value an implementation reports for it is its default, so no
         // color theme has to be named here.
@@ -154,22 +161,30 @@ void WStyle::buildTemplate(we::config::WConfigTemplate &tmpl,
                            .defaultValue(colorThemeOptions.first())
                            .displayName(tr("Color theme"))
                            .description(tr("Color family of the selected style"))
-                           .options(colorThemeOptions));
+                           .options(colorThemeOptions)
+                           .visibleWhen(QString::fromLatin1(KeyStyleName),
+                                        colorThemeStyles));
     }
     if (fluentAvailable)
         WFluentUIStyle::buildTemplate(tmpl, path);
+    // Only the QSS implementation loads these sheets: the others paint without them,
+    // so the entries are shown while QSS is selected and left alone otherwise.
+    const QStringList qssStyles =
+        QStringList() << QString::fromLatin1(StyleQss);
     tmpl.addCustom(path, QString::fromLatin1(KeyStyleFile),
                    we::config::WConfigItemInfo()
                        .defaultValue(QString())
                        .displayName(tr("Style file"))
                        .description(tr("Style sheet replacing the built-in theme"))
-                       .defaultItem(QStringLiteral("path")));
+                       .defaultItem(QStringLiteral("path"))
+                       .visibleWhen(QString::fromLatin1(KeyStyleName), qssStyles));
     tmpl.addCustom(path, QString::fromLatin1(KeyThemeFile),
                    we::config::WConfigItemInfo()
                        .defaultValue(QString())
                        .displayName(tr("Theme file"))
                        .description(tr("Style sheet loaded after the built-in theme"))
-                       .defaultItem(QStringLiteral("path")));
+                       .defaultItem(QStringLiteral("path"))
+                       .visibleWhen(QString::fromLatin1(KeyStyleName), qssStyles));
     tmpl.setViewerMeta(path, tr("Style"), tr("Application appearance"));
     if (path.isEmpty())
         return;

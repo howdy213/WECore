@@ -47,6 +47,11 @@ using WConfigItemAdjuster =
 // Full group-level custom layout: there is no runtime adjuster; supply it at
 // group-creation time via WConfigGroupSpec::layoutBuilder (see WConfigViewer.h).
 
+// Callback run when the UI changes the temporary value of an item, with the item
+// that was edited.
+using WConfigTemporaryChange =
+    std::function<void(we::config::WConfigDataBase *data)>;
+
 // Settings dialog: shows the config tree and renders the selected viewer's items as
 // editors, with Save / Cancel and optional add / remove of items.
 class WE_EXPORT WConfigWidget : public QDialog
@@ -56,6 +61,13 @@ public:
     explicit WConfigWidget(WConfig* config, QWidget* parent = nullptr);
     ~WConfigWidget();
     void addVerification(std::function<bool(WConfig*)> func);
+    // Called whenever the UI edits a temporary value. Temporary values change from
+    // the UI alone, so they are reported here, by the widget hosting the editors,
+    // rather than by the data tree (whose notification covers the persistent value
+    // and is a different thing: one is a pending edit, the other a committed value).
+    // Items that follow another item's value through WConfigItemInfo::visibleWhen()
+    // are brought up to date before the callback runs.
+    void setTemporaryChangeCallback(WConfigTemporaryChange callback);
     // Caller-driven refresh: re-read all visible editors in the current view from data.
     void refreshDisplay();
     // Plugin hook: append a merged group to the current viewer (applied immediately).
@@ -99,6 +111,12 @@ private:
     QList<WConfigItemWidget*> m_itemWidgets;             // Standalone item widgets
     QList<WConfigGroupWidget*> m_groupWidgets;           // Merged-group widgets
     QList<std::function<bool(WConfig*)>> m_verifications;
+    WConfigTemporaryChange m_temporaryChangeCallback;
+    // Entry point of the temporary-value notification: run for an item widget and
+    // for every group member, with the item the editor belongs to.
+    void onTemporaryValueChanged(WConfigDataBase* data);
+    // Re-applies the visibleWhen() rule of every item on the page.
+    void refreshItemVisibility();
     WConfigContentLayout m_contentMode = WConfigContentLayout::Vertical;
     // Item adjusters keyed by "viewerPath/configKey".
     QHash<QString, WConfigItemAdjuster> m_itemAdjusters;

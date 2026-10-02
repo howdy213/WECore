@@ -84,6 +84,16 @@ public:
     bool isMountRoot(WConfigViewer *viewer) const;
     int mountCount() const { return m_mounts.size() + m_rootMounts.size(); }
 
+    /// The mount that contributed @p viewer / @p data, or nullptr when the node
+    /// belongs to this document itself.
+    WConfigViewer *mountOwner(WConfigViewer *viewer) const;
+    WConfigViewer *mountOwner(WConfigDataBase *data) const;
+
+    /// Mount roots whose subtree is stored in a file of its own. A storage backend
+    /// receives this list and leaves those nodes out of its load/save round, so a
+    /// self-storing sub-config is never duplicated into the host file.
+    using ExcludedMounts = QList<WConfigViewer *>;
+
 private:
     /// Content a sub-config merged into the root: the nodes themselves plus the
     /// sub-config root they have to be handed back to.
@@ -96,8 +106,10 @@ private:
     bool attachRootMount(WConfigViewer *root);
     bool isContributedByRootMount(WConfigDataBase *data) const;
 
-    void loadFromVariant(WConfigViewer *viewer, const QVariant &variant);
-    QVariant saveToVariant(WConfigViewer *viewer) const;
+    void loadFromVariant(WConfigViewer *viewer, const QVariant &variant,
+                         const ExcludedMounts &excluded = ExcludedMounts());
+    QVariant saveToVariant(WConfigViewer *viewer,
+                           const ExcludedMounts &excluded = ExcludedMounts()) const;
 
 private:
     bool m_allowCreateOnLoad = false;

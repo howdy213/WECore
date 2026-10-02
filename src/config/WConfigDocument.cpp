@@ -204,6 +204,30 @@ bool WConfigDocument::isContributedByRootMount(WConfigDataBase *data) const {
     return false;
 }
 
+WConfigViewer *WConfigDocument::mountOwner(WConfigViewer *viewer) const {
+    if (!viewer)
+        return nullptr;
+    for (const QPair<QString, WConfigViewer *> &mount : m_mounts) {
+        if (mount.second == viewer)
+            return mount.second;
+    }
+    for (const RootMount &mount : m_rootMounts) {
+        if (mount.viewers.contains(viewer))
+            return mount.root;
+    }
+    return nullptr;
+}
+
+WConfigViewer *WConfigDocument::mountOwner(WConfigDataBase *data) const {
+    if (!data)
+        return nullptr;
+    for (const RootMount &mount : m_rootMounts) {
+        if (mount.data.contains(data))
+            return mount.root;
+    }
+    return nullptr;
+}
+
 void WConfigDocument::setTemplate(WConfigTemplate *configTemplate) {
     m_template = configTemplate;
     if (m_template) {
@@ -215,7 +239,8 @@ void WConfigDocument::setTemplate(WConfigTemplate *configTemplate) {
 QVariant WConfigDocument::toVariant() const { return saveToVariant(m_root); }
 
 void WConfigDocument::loadFromVariant(WConfigViewer *viewer,
-                                      const QVariant &variant) {
+                                      const QVariant &variant,
+                                      const ExcludedMounts &excluded) {
     if (!viewer || !variant.canConvert<QVariantMap>())
         return;
 
@@ -232,6 +257,10 @@ void WConfigDocument::loadFromVariant(WConfigViewer *viewer,
         const QString &key = it.key();
         const QVariant &value = it.value();
         if (WConfigDataBase *existing = viewer->getConfigData(key)) {
+            // A self-storing mount's items live here but are stored in the
+            // sub-config's own file: never overwrite them from the host file.
+            if (excluded.contains(mountOwner(existing)))
+                continue;
             existing->fromVariant(value);
             continue;
         }
@@ -251,7 +280,11 @@ void WConfigDocument::loadFromVariant(WConfigViewer *viewer,
             }
         }
         if (sameNameChild) {
-            loadFromVariant(sameNameChild, value);
+            // A self-storing mount's subtree must never be refilled from the host
+            // file: it lives in the sub-config's own file.
+            if (excluded.contains(mountOwner(sameNameChild)))
+                continue;
+            loadFromVariant(sameNameChild, value, excluded);
             continue;
         }
         bool canCreate = false;
@@ -270,7 +303,7 @@ void WConfigDocument::loadFromVariant(WConfigViewer *viewer,
             if (!tmplIsObject) {
                 WConfigViewer *newChild = new WConfigViewer(key, viewer);
                 if (viewer->addChild(newChild)) {
-                    loadFromVariant(newChild, value);
+                    loadFromVariant(newChild, value, excluded);
                 } else {
                     delete newChild;
                 }
@@ -316,20 +349,27 @@ void WConfigDocument::loadFromVariant(WConfigViewer *viewer,
     }
 }
 
-QVariant WConfigDocument::saveToVariant(WConfigViewer *viewer) const {
+QVariant WConfigDocument::saveToVariant(WConfigViewer *viewer,
+                                        const ExcludedMounts &excluded) const {
     QVariantMap map;
     // Insert data items before subdirectories so the conflict check in the next loop works
     for (WConfigDataBase *data : viewer->allConfigData()) {
+        // A self-storing mount's items are written by its own sub-config.
+        if (excluded.contains(mountOwner(data)))
+            continue;
         map[data->key()] = data->toVariant();
     }
     for (WConfigViewer *child : viewer->children()) {
+        // A self-storing mounted subtree is written by its own sub-config.
+        if (excluded.contains(mountOwner(child)))
+            continue;
         if (map.contains(child->name())) {
             qWarning() << "WConfigDocument: conflict between data item and "
                           "subdirectory with same name:"
                        << child->name();
             continue;
         }
-        map[child->name()] = saveToVariant(child);
+        map[child->name()] = saveToVariant(child, excluded);
     }
     return map;
 }

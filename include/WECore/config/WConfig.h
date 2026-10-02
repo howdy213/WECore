@@ -52,8 +52,8 @@ public:
     bool initialize(QSettings *settings,
                     WConfigTemplate *configTemplate = nullptr);
     /// Build the in-memory tree from a template without configuring a storage
-    /// backend. Used by sub-configs, which are mounted into a host and share its
-    /// storage instead of owning one.
+    /// backend. Used by sub-configs that share the host's storage. A sub-config
+    /// that keeps its values in a file of its own uses initialize() instead.
     bool applyTemplate(WConfigTemplate *configTemplate);
     WConfigDocument *document() const { return m_document; }
 
@@ -113,9 +113,15 @@ signals:
     void configChanged(we::config::WConfigDataBase *data);
 
 private:
-    /// Invoked by the host after it wrote the whole tree: a mounted sub-config has
-    /// no write of its own, so it only clears its restart flag here.
+    /// Invoked by the host after it wrote the whole tree, for a mounted sub-config
+    /// that has no storage of its own: its values were written as part of the host
+    /// tree, so it only clears its restart flag here.
     void onHostSaved();
+
+    /// Roots of mounted sub-configs that keep their own storage. The host's storage
+    /// backend must skip these subtrees so a self-storing sub-config never ends up
+    /// duplicated into the host file.
+    QList<WConfigViewer *> excludedMountRoots() const;
 
     /// Current storage backend (file or QSettings), chosen by initialize()
     std::unique_ptr<WConfigStorage> m_storage;

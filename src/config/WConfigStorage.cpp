@@ -36,16 +36,24 @@ namespace we::config {
 // ---------------------------------------------------------------------------
 
 /// Recursively collect paths of items that are effectively locked and modified; if any exist, saving is refused.
-static void collectLockedModified(WConfigViewer *viewer, QStringList &errors) {
+/// Nodes contributed by a self-storing mount (listed in @p excludedMounts) are
+/// skipped: they are stored by their own sub-config, not by this backend.
+static void collectLockedModified(WConfigDocument *document, WConfigViewer *viewer,
+                                  const QList<WConfigViewer *> &excludedMounts,
+                                  QStringList &errors) {
     if (!viewer)
         return;
     for (WConfigDataBase *data : viewer->allConfigData()) {
+        if (document && excludedMounts.contains(document->mountOwner(data)))
+            continue;
         if (data->isEffectivelyLocked() && data->modified()) {
             errors << data->fullPath();
         }
     }
     for (WConfigViewer *child : viewer->children()) {
-        collectLockedModified(child, errors);
+        if (document && excludedMounts.contains(document->mountOwner(child)))
+            continue;
+        collectLockedModified(document, child, excludedMounts, errors);
     }
 }
 
@@ -166,7 +174,8 @@ QString WConfigFileStorage::describe() const {
     return m_filePath.isEmpty() ? tr("No config file") : m_filePath;
 }
 
-bool WConfigFileStorage::load(WConfigDocument *document) {
+bool WConfigFileStorage::load(WConfigDocument *document,
+                              const QList<WConfigViewer *> &excludedMounts) {
     if (!document || !isReady())
         return false;
 
@@ -184,7 +193,7 @@ bool WConfigFileStorage::load(WConfigDocument *document) {
                        << m_filePath;
             return false;
         }
-        document->loadFromVariant(document->root(), doc.toVariant());
+        document->loadFromVariant(document->root(), doc.toVariant(), excludedMounts);
         document->syncToAllPersistent();
         return true;
     }
@@ -193,7 +202,8 @@ bool WConfigFileStorage::load(WConfigDocument *document) {
         // INI and JSON share the same load semantics: both merge and overwrite
         // onto the existing config tree, so items missing from the file keep
         // their template defaults.
-        document->loadFromVariant(document->root(), settings.value("config"));
+        document->loadFromVariant(document->root(), settings.value("config"),
+                                  excludedMounts);
         document->syncToAllPersistent();
         return true;
     }
@@ -201,7 +211,8 @@ bool WConfigFileStorage::load(WConfigDocument *document) {
     return false;
 }
 
-bool WConfigFileStorage::save(WConfigDocument *document, QStringList &errors) {
+bool WConfigFileStorage::save(WConfigDocument *document, QStringList &errors,
+                              const QList<WConfigViewer *> &excludedMounts) {
     errors.clear();
     if (!document || !isReady()) {
         errors << tr("Invalid config file path");
@@ -209,14 +220,16 @@ bool WConfigFileStorage::save(WConfigDocument *document, QStringList &errors) {
     }
 
     // Items that are locked and modified must not be written, to avoid overwriting externally held data
-    collectLockedModified(document->root(), errors);
+    collectLockedModified(document, document->root(), excludedMounts, errors);
     if (!errors.isEmpty())
         return false;
 
     // Merge into the file on disk instead of replacing it: several sub-systems
     // (this config, WMetaDocument, other tools) may share one config file, and a
     // full overwrite would drop every key this document does not know about.
-    const QVariantMap docMap = document->toVariant().toMap();
+    // Self-storing mounted subtrees are excluded: each of them owns its own file.
+    const QVariantMap docMap =
+        document->saveToVariant(document->root(), excludedMounts).toMap();
     const QString suffix = QFileInfo(m_filePath).suffix().toLower();
     if (suffix == "json") {
         QVariantMap merged = readJsonMap(m_filePath);
@@ -251,23 +264,27 @@ QString WConfigSettingsStorage::describe() const {
     return m_settings ? m_settings->fileName() : QString();
 }
 
-bool WConfigSettingsStorage::load(WConfigDocument *document) {
+bool WConfigSettingsStorage::load(WConfigDocument *document,
+                                  const QList<WConfigViewer *> &excludedMounts) {
     if (!document || !m_settings)
         return false;
-    document->loadFromVariant(document->root(), settingsToNestedMap(m_settings));
+    document->loadFromVariant(document->root(), settingsToNestedMap(m_settings),
+                              excludedMounts);
     document->syncToAllPersistent();
     return true;
 }
 
-bool WConfigSettingsStorage::save(WConfigDocument *document,
-                                  QStringList &errors) {
+bool WConfigSettingsStorage::save(WConfigDocument *document, QStringList &errors,
+                                  const QList<WConfigViewer *> &excludedMounts) {
     errors.clear();
     if (!document || !m_settings) {
         errors << tr("Invalid QSettings storage");
         return false;
     }
 
-    const QVariantMap nestedMap = document->toVariant().toMap();
+    // Self-storing mounted subtrees are excluded: each of them owns its own file.
+    const QVariantMap nestedMap =
+        document->saveToVariant(document->root(), excludedMounts).toMap();
 
     // Collect all keys that the document will write
     QStringList docKeys;

@@ -47,32 +47,25 @@ WConfig::~WConfig() {
 
 bool WConfig::initialize(const QString &configFile,
                          WConfigTemplate *configTemplate) {
-    if (isMounted()) {
-        qWarning() << "WConfig::initialize: a mounted sub-config has no storage of "
-                      "its own; the host handles reading and writing";
-        return false;
-    }
+    // A sub-config may own a storage of its own (its values then live in a
+    // separate file) or share the host's, in which case it is mounted without
+    // calling this. Both are valid, so mounted state is not rejected here.
     auto *storage = new WConfigFileStorage(configFile);
     m_storage.reset(storage);
     if (configTemplate) {
         m_document->setTemplate(configTemplate);
     }
-    return storage->load(m_document);
+    return storage->load(m_document, excludedMountRoots());
 }
 
 bool WConfig::initialize(QSettings* settings, WConfigTemplate* configTemplate) {
     if (!settings) return false;
-    if (isMounted()) {
-        qWarning() << "WConfig::initialize: a mounted sub-config has no storage of "
-                      "its own; the host handles reading and writing";
-        return false;
-    }
     auto *storage = new WConfigSettingsStorage(settings);
     m_storage.reset(storage);
     if (configTemplate) {
         m_document->setTemplate(configTemplate);
     }
-    return storage->load(m_document);
+    return storage->load(m_document, excludedMountRoots());
 }
 
 bool WConfig::applyTemplate(WConfigTemplate *configTemplate) {
@@ -137,6 +130,18 @@ QList<WConfig *> WConfig::subConfigs() const {
 void WConfig::onHostSaved() {
     // The host wrote the whole tree, including this sub-config's items
     m_hasRestartRequiredChanges = false;
+}
+
+QList<WConfigViewer *> WConfig::excludedMountRoots() const {
+    QList<WConfigViewer *> result;
+    for (const QPointer<WConfig> &sub : m_subConfigs) {
+        // Only a sub-config with a storage of its own owns a separate file; one
+        // without a storage is written by this host, so it must stay included.
+        if (!sub || !sub->m_storage || !sub->m_document)
+            continue;
+        result.append(sub->m_document->root());
+    }
+    return result;
 }
 
 QVariant WConfig::getValueDirect(const QString &path) const {
@@ -225,27 +230,45 @@ QSharedPointer<WConfigDirRef> WConfig::createDirRef(const QString &path) {
 }
 
 bool WConfig::save() {
-    // A mounted sub-config has no storage of its own: the host writes the whole
-    // tree, which already contains the mounted subtree. Delegating (instead of
-    // the host calling sub->save()) keeps this from recursing.
-    if (!m_mountedIn.isNull()) {
-        return m_mountedIn->save();
-    }
-    m_lastSaveErrors.clear();
-    if (!m_storage || !m_storage->isReady()) {
+    // A config without a storage of its own (a plain mounted sub-config) is
+    // written by its host, which owns the file containing this subtree. Delegating
+    // (instead of the host recursively calling sub->save()) keeps this from
+    // recursing.
+    if (!m_storage) {
+        if (!m_mountedIn.isNull())
+            return m_mountedIn->save();
+        m_lastSaveErrors.clear();
         m_lastSaveErrors << tr("No storage backend is configured");
         return false;
     }
-    if (!m_storage->save(m_document, m_lastSaveErrors)) {
+
+    m_lastSaveErrors.clear();
+    if (!m_storage->isReady()) {
+        m_lastSaveErrors << tr("No storage backend is configured");
+        return false;
+    }
+    // Only this config's own tree is written here; self-storing mounted subtrees
+    // are excluded by the storage backend and saved by their own config below.
+    if (!m_storage->save(m_document, m_lastSaveErrors, excludedMountRoots())) {
         return false;
     }
     m_document->syncToAllPersistent();
     m_hasRestartRequiredChanges = false;
+
+    bool ok = true;
     for (const QPointer<WConfig> &sub : m_subConfigs) {
-        if (sub)
+        if (!sub)
+            continue;
+        if (sub->m_storage) {
+            // The sub-config owns a separate file: write it on its own.
+            if (!sub->save())
+                ok = false;
+        } else {
+            // Its values were already written as part of this tree.
             sub->onHostSaved();
+        }
     }
-    return true;
+    return ok;
 }
 
 bool WConfig::saveAs(const QString &filePath) {
@@ -255,7 +278,7 @@ bool WConfig::saveAs(const QString &filePath) {
 
     // Save-as always writes to a file, regardless of whether the current backend is QSettings
     WConfigFileStorage target(filePath);
-    if (!target.save(m_document, m_lastSaveErrors)) {
+    if (!target.save(m_document, m_lastSaveErrors, excludedMountRoots())) {
         return false;
     }
 

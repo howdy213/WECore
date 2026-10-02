@@ -31,6 +31,7 @@ class QSettings;
 namespace we::config {
 
 class WConfigDocument;
+class WConfigViewer;
 
 /**
  * @brief Abstract interface for a configuration storage backend.
@@ -49,19 +50,28 @@ public:
 
     /**
      * @brief Read configuration from the backend and merge it into the document.
+     * @param excludedMounts Mount roots whose subtree is stored elsewhere; the
+     *        backend leaves those nodes untouched so a self-storing sub-config is
+     *        never overwritten by the host file.
      * @return true on success; false if the backend is not ready or the data is
      *         unavailable, in which case the document is left unchanged
      *         (usually the template defaults).
      */
-    virtual bool load(WConfigDocument *document) = 0;
+    virtual bool load(WConfigDocument *document,
+                      const QList<WConfigViewer *> &excludedMounts =
+                          QList<WConfigViewer *>()) = 0;
 
     /**
      * @brief Write the document content to the backend.
      * @param errors Output parameter; on failure, receives the failure reason
      *               or the paths of items that refused to be saved.
+     * @param excludedMounts Mount roots whose subtree is stored elsewhere and must
+     *        be left out of this file.
      * @return true on success.
      */
-    virtual bool save(WConfigDocument *document, QStringList &errors) = 0;
+    virtual bool save(WConfigDocument *document, QStringList &errors,
+                      const QList<WConfigViewer *> &excludedMounts =
+                          QList<WConfigViewer *>()) = 0;
 
     /// Whether the backend is usable for reading/writing (path/settings object configured).
     virtual bool isReady() const = 0;
@@ -87,8 +97,12 @@ public:
     void setFilePath(const QString &filePath) { m_filePath = filePath; }
     QString filePath() const { return m_filePath; }
 
-    bool load(WConfigDocument *document) override;
-    bool save(WConfigDocument *document, QStringList &errors) override;
+    bool load(WConfigDocument *document,
+              const QList<WConfigViewer *> &excludedMounts =
+                  QList<WConfigViewer *>()) override;
+    bool save(WConfigDocument *document, QStringList &errors,
+              const QList<WConfigViewer *> &excludedMounts =
+                  QList<WConfigViewer *>()) override;
     bool isReady() const override;
     QString describe() const override;
 
@@ -113,8 +127,12 @@ public:
 
     QSettings *settings() const { return m_settings; }
 
-    bool load(WConfigDocument *document) override;
-    bool save(WConfigDocument *document, QStringList &errors) override;
+    bool load(WConfigDocument *document,
+              const QList<WConfigViewer *> &excludedMounts =
+                  QList<WConfigViewer *>()) override;
+    bool save(WConfigDocument *document, QStringList &errors,
+              const QList<WConfigViewer *> &excludedMounts =
+                  QList<WConfigViewer *>()) override;
     bool isReady() const override;
     QString describe() const override;
 
